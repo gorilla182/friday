@@ -4,6 +4,7 @@ import ssl
 import subprocess
 import sys
 import time
+from pathlib import Path
 import urllib.parse
 import urllib.request
 import webbrowser
@@ -54,11 +55,25 @@ def fetch_weather(location: str) -> str:
         return resp.read().decode("utf-8", "replace").strip()
 
 
-def launch_apps() -> None:
+def launch_jarvis_gui() -> None:
+    gui = Path(__file__).resolve().parent / "jarvis_gui.py"
+    if not gui.is_file():
+        return
+    subprocess.Popen(
+        [sys.executable, str(gui)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
+def launch_apps(open_jarvis_gui: bool) -> None:
     run_cmd("open", "-a", "Cursor")
     if run_cmd("open", "-a", "Postman") != 0:
         run_cmd("open", "/Applications/Postman.app")
     webbrowser.open(YOUTUBE_URL, new=2)
+    if open_jarvis_gui:
+        launch_jarvis_gui()
 
 
 def speak_weather(location: str, voice: str | None) -> None:
@@ -112,8 +127,8 @@ def run_detector(args: argparse.Namespace) -> None:
                     print("Double clap in cooldown.")
                     first_clap_at = None
                     continue
-                print("Double clap detected. Opening Cursor, Postman and video...")
-                launch_apps()
+                print("Double clap detected. Opening Cursor, Postman, Jarvis HUD and video...")
+                launch_apps(open_jarvis_gui=not args.no_gui)
                 if not args.no_weather:
                     speak_weather(args.weather_location, args.say_voice)
                 last_action_at = now
@@ -134,6 +149,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weather-location", type=str, default=WEATHER_LOCATION)
     p.add_argument("--no-weather", action="store_true")
     p.add_argument("--say-voice", type=str, default="jarvis")
+    p.add_argument(
+        "--no-gui",
+        action="store_true",
+        help="Do not open Jarvis HUD window on double clap.",
+    )
     return p.parse_args()
 
 
