@@ -1,0 +1,284 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    color: #1a1a2e;
+    background: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.header {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 1rem 0;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.nav a {
+    color: #ccc;
+    text-decoration: none;
+    margin-left: 1.5rem;
+}
+
+.nav a:hover {
+    color: #fff;
+}
+
+.main {
+    flex: 1;
+    padding: 2rem 1rem;
+}
+
+.footer {
+    background: #e8ecf1;
+    padding: 1rem 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+h1 {
+    margin-top: 0;
+}
+
+.muted {
+    color: #666;
+}
+
+.auth-card,
+.success-card {
+    max-width: 420px;
+    margin: 2rem auto;
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+form label {
+    display: block;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form input[type="number"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+button,
+.btn {
+    display: inline-block;
+    margin-top: 1.25rem;
+    padding: 0.6rem 1.25rem;
+    background: #4361ee;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+button:hover,
+.btn:hover {
+    background: #3a56d4;
+}
+
+.btn-secondary {
+    background: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-danger {
+    background: #dc3545;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.auth-link {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.error-box {
+    background: #fde8e8;
+    color: #9b1c1c;
+    border: 1px solid #f5c6cb;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-error {
+    background: #fde8e8;
+    color: #9b1c1c;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.product-card {
+    background: #fff;
+    padding: 1.25rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #4361ee;
+}
+
+.description {
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: #4361ee;
+    text-decoration: none;
+}
+
+.item-detail {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.cart-table th,
+.cart-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.cart-table th {
+    background: #f8f9fa;
+}
+
+.inline-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.inline-form input[type="number"] {
+    width: 70px;
+}
+
+.inline-form button {
+    margin-top: 0;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.cart-total {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 1.5rem 0;
+}
+
+.checkout-list {
+    background: #fff;
+    padding: 1.25rem 2rem;
+    border-radius: 8px;
+    list-style: none;
+}
+
+.checkout-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.order-number {
+    font-size: 1.125rem;
+    margin: 1.5rem 0;
+}
+
+.profile-details {
+    background: #fff;
+    padding: 1.5rem 2rem;
+    border-radius: 8px;
+    max-width: 480px;
+}
+
+.profile-details dt {
+    font-weight: 600;
+    margin-top: 0.75rem;
+}
+
+.profile-details dd {
+    margin: 0.25rem 0 0 0;
+    color: #555;
+}
+
+.page-header {
+    margin-bottom: 1rem;
+}

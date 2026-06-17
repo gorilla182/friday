@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Cart — Teststand{% endblock %}
+
+{% block content %}
+<section data-testid="cart-page">
+    <h1 data-testid="cart-heading">Shopping cart</h1>
+
+    {% if items %}
+    <table class="cart-table" data-testid="cart-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Subtotal</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr data-testid="cart-row-{{ item.cart_id }}">
+                <td data-testid="cart-item-name-{{ item.cart_id }}">{{ item.name }}</td>
+                <td data-testid="cart-item-price-{{ item.cart_id }}">${{ "%.2f"|format(item.price) }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('ui.update_cart_item', cart_id=item.cart_id) }}"
+                          class="inline-form" data-testid="cart-update-form-{{ item.cart_id }}">
+                        <input type="number" name="quantity" value="{{ item.quantity }}" min="0"
+                               data-testid="cart-quantity-{{ item.cart_id }}">
+                        <button type="submit" data-testid="cart-update-submit-{{ item.cart_id }}">Update</button>
+                    </form>
+                </td>
+                <td data-testid="cart-subtotal-{{ item.cart_id }}">${{ "%.2f"|format(item.price * item.quantity) }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('ui.remove_cart_item', cart_id=item.cart_id) }}"
+                          data-testid="cart-remove-form-{{ item.cart_id }}">
+                        <button type="submit" class="btn-danger"
+                                data-testid="cart-remove-submit-{{ item.cart_id }}">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="cart-total" data-testid="cart-total">Total: ${{ "%.2f"|format(total) }}</p>
+
+    <a href="{{ url_for('ui.checkout') }}" class="btn" data-testid="cart-checkout-link">Proceed to checkout</a>
+    {% else %}
+    <p data-testid="cart-empty">Your cart is empty.</p>
+    <a href="{{ url_for('ui.dashboard') }}" data-testid="cart-browse-link">Browse products</a>
+    {% endif %}
+</section>
+{% endblock %}
