@@ -1,236 +1,224 @@
-# Teststand
+# Friday — Учебный тест-стенд для автотестов
 
-Учебный веб-стенд для практики автотестов на **Python + Playwright + requests**.
+Проект предназначен для практики написания автотестов (Playwright + requests / Playwright + API).
 
-Проект намеренно простой: предсказуемое поведение, стабильные локаторы (`data-testid`) и возможность сброса данных между прогонами тестов.
+**Архитектура (2026):**
+- Фронтенд: полностью статический сайт (HTML + vanilla JS + CSS)
+- Бэкенд: Supabase (PostgreSQL + Auth + Row Level Security)
+- Деплой фронтенда: GitHub Pages + GitHub Actions
+- API для тестов: Supabase Edge Functions (реалистичные HTTP эндпоинты)
 
-## Почему Flask, а не FastAPI
+## Быстрый старт
 
-Выбран **Flask**, потому что:
-
-- **Jinja2** — шаблонизатор «из коробки», без дополнительной настройки
-- **Сессии** для UI-авторизации реализуются просто (`flask.session`)
-- **Blueprints** позволяют чисто разделить UI- и API-роуты
-- Меньше «магии» — удобнее для обучения и отладки тестов
-
-FastAPI лучше подошёл бы, если бы основной фокус был на REST API и OpenAPI/Swagger. Здесь UI и API равнозначны, а Swagger не является обязательным требованием.
-
-## Стек
-
-| Компонент | Технология |
-|-----------|------------|
-| Backend | Python 3.10+, Flask |
-| База данных | SQLite (файл `data/teststand.db`) |
-| UI | Jinja2 + минимальный CSS |
-| API auth | JWT Bearer token |
-| UI auth | Cookie-сессия Flask |
-
-## Установка и запуск
+### Локальный запуск фронтенда
 
 ```bash
-# After cloning the repository (directory name will match your repo name, e.g. "friday")
 cd friday
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
+cd site
+python -m http.server 8000
+# Открой http://localhost:8000
 ```
 
-Приложение будет доступно по адресу: **http://127.0.0.1:5000**
+Тестовые пользователи (созданы в Supabase):
+- `alice@example.com` / `password123`
+- `bob@example.com` / `password123`
 
-Опции запуска:
+### Сброс данных (для изоляции тестов)
+
+Самый удобный способ — вызвать Edge Function:
 
 ```bash
-python app.py --host 0.0.0.0 --port 8080
+curl -X POST https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api/admin/reset \
+  -H "Content-Type: application/json"
 ```
+
+Или используйте RPC напрямую через Supabase клиент с service role key (только для CI).
 
 ## Структура проекта
 
 ```
-friday/   # (or your repo name)
-├── app.py              # Точка входа, регистрация blueprints, CLI
-├── config.py           # Константы (секреты, лимиты, пути к БД)
-├── database.py         # SQLite: схема, seed, reset, хелперы
-├── ui/
-│   ├── __init__.py
-│   └── routes.py       # UI-роуты (HTML-страницы, сессии)
-├── api/
-│   ├── __init__.py
-│   └── routes.py       # REST API (/api/v1/...)
-├── templates/          # Jinja2-шаблоны
-├── static/
-│   └── style.css       # Минимальные стили
-├── site/               # Static frontend for GitHub Pages (uses Supabase)
-├── data/
-│   └── teststand.db    # SQLite (создаётся автоматически)
-├── requirements.txt
+friday/
+├── site/                    # Статический фронтенд (деплоится на GitHub Pages)
+│   ├── index.html
+│   ├── dashboard.html
+│   ├── cart.html
+│   ├── ...
+│   ├── js/supabase-client.js
+│   └── style.css
+├── supabase/
+│   ├── functions/
+│   │   └── api/             # Реалистичный API слой (Edge Functions)
+│   │       └── index.ts
+│   ├── schema.sql
+│   └── reset.sql            # Функция сброса
+├── .github/workflows/       # Деплой на GitHub Pages
 └── README.md
 ```
 
-## Карта UI-страниц
+Старый Flask-код полностью удалён.
 
-```
-/login ──(успех)──► /dashboard ──► /items/<id> ──(add to cart)──► /cart
-   ▲                    │                                              │
-   │                    ├──► /profile ──(logout)──► /login            │
-   │                    │                                              │
-/register              │                                              ▼
-                       │                                         /checkout
-                       │                                              │
-                       └◄──(continue)── /success ◄──(place order)─────┘
-```
+## UI Функциональность (для Playwright тестов)
 
-| Страница | URL | Доступ | Описание |
-|----------|-----|--------|----------|
-| Login | `/login` | Публичная | Форма входа, ошибка при неверных данных |
-| Register | `/register` | Публичная | Регистрация с валидацией email/пароля |
-| Dashboard | `/dashboard` | Авторизованные | Каталог товаров |
-| Item detail | `/items/<id>` | Авторизованные | Карточка товара, добавление в корзину |
-| Cart | `/cart` | Авторизованные | Изменение количества, удаление позиций |
-| Checkout | `/checkout` | Авторизованные | Подтверждение заказа |
-| Success | `/success?order_number=...` | Авторизованные | Страница успешного заказа |
-| Profile | `/profile` | Авторизованные | Данные пользователя, logout |
+Текущий магазин покрывает:
 
-Неавторизованный доступ к защищённым страницам → редирект на `/login`.
+- Регистрация и логин (с автопереходом)
+- Просмотр каталога с **поиском по названию**, **сортировкой** (имя/цена), **фильтром по категории** (новое)
+- Детальная карточка товара + добавление в корзину
+- Корзина: обновление количества, удаление
+- Checkout и оформление заказа
+- Профиль: просмотр, **редактирование имени** (новое), **история заказов** (новое)
+- **Отзывы к товарам** (новое): просмотр и добавление отзывов с рейтингом 1-5
 
-### data-testid
+Все интерактивные элементы имеют `data-testid` для стабильных локаторов.
 
-Все интерактивные элементы помечены атрибутом `data-testid`. Ошибки форм выводятся в блоке:
+Новые UI "эндпоинты"/потоки:
+- Поиск и фильтрация товаров
+- История заказов
+- Редактирование профиля
+- Добавление и просмотр отзывов на странице товара
 
-```html
-<div data-testid="error-message">...</div>
-```
+Это позволяет покрывать больше сценариев в Playwright тестах.
 
-## API-эндпоинты
+## API Эндпоинты (для тестов на requests)
 
-Базовый URL: `http://127.0.0.1:5000/api/v1`
+Базовый URL:  
+`https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api`
 
-Формат ошибок (единый для всех эндпоинтов):
+### Аутентификация
 
-```json
-{"error": "Human-readable message", "code": "machine_code"}
-```
+```http
+POST /auth/register
+Content-Type: application/json
 
-### Таблица эндпоинтов
-
-| Метод | Путь | Auth | Описание |
-|-------|------|------|----------|
-| POST | `/auth/register` | Нет | Регистрация → 201 / 400 (дубликат) / 422 |
-| POST | `/auth/login` | Нет | Логин → Bearer token / 401 |
-| GET | `/items` | Нет | Список с пагинацией и фильтром `?category=` |
-| POST | `/items` | Bearer | Создание → 201 / 401 / 422 |
-| GET | `/items/<id>` | Нет | Получение → 200 / 404 |
-| PUT | `/items/<id>` | Bearer | Обновление (только владелец) → 200 / 403 / 404 |
-| DELETE | `/items/<id>` | Bearer | Удаление → 204 / 403 / 404 |
-| POST | `/items/trigger-error` | Нет | Edge-cases: 429 (rate limit) / 500 (спец. payload) |
-| POST | `/admin/reset` | Нет | Сброс БД в исходное состояние |
-
-> **Примечание:** UI (магазин) и API (задачи/items) используют разные сущности в БД. UI работает с `products`, API — с `api_items`.
-
-### Примеры запросов
-
-**Регистрация**
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "secret123", "name": "Test User"}'
-```
-
-Ответ `201`:
-
-```json
-{"id": 3, "email": "test@example.com", "name": "Test User"}
-```
-
-**Логин**
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "password123"}'
-```
-
-Ответ `200`:
-
-```json
-{"access_token": "eyJ...", "token_type": "Bearer"}
-```
-
-**Список items с пагинацией**
-
-```bash
-curl "http://127.0.0.1:5000/api/v1/items?page=1&limit=10&category=testing"
-```
-
-Ответ `200`:
-
-```json
 {
-  "items": [{"id": 1, "title": "Write login tests", "description": "...", "category": "testing", "owner_id": 1, "created_at": "..."}],
-  "page": 1,
-  "limit": 10,
-  "total": 3,
-  "total_pages": 1
+  "email": "new@example.com",
+  "password": "password123",
+  "name": "New User"
 }
 ```
 
-**Создание item (с токеном)**
+```http
+POST /auth/login
+{
+  "email": "alice@example.com",
+  "password": "password123"
+}
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/v1/items \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{"title": "New task", "description": "Practice POST", "category": "homework"}'
+# Ответ
+{
+  "access_token": "eyJ...",
+  "token_type": "Bearer",
+  "user": { ... }
+}
 ```
 
-**Edge-case: симуляция 500**
+### Основные эндпоинты
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/v1/items/trigger-error \
-  -H "Content-Type: application/json" \
-  -d '{"payload": "server_error"}'
+**Items (CRUD + пагинация + фильтры)**
+
+```http
+GET /items?page=1&limit=10&category=testing
+Authorization: Bearer <token>
+
+POST /items
+Authorization: Bearer <token>
+{
+  "title": "New task",
+  "description": "...",
+  "category": "testing"
+}
+
+GET /items/123
+PUT /items/123
+DELETE /items/123
 ```
 
-**Edge-case: rate limit (429)**
+**Дополнительные (новые для покрытия UI)**
 
-Отправьте более 5 запросов в минуту на `POST /api/v1/items/trigger-error` без спец. payload — получите `429`.
-
-## Тестовые пользователи
-
-Создаются автоматически при первом запуске:
-
-| Email | Password | Name |
-|-------|----------|------|
-| `alice@example.com` | `password123` | Alice Tester |
-| `bob@example.com` | `password123` | Bob Tester |
-
-## Сброс данных
-
-Для изоляции автотестов между прогонами:
-
-**CLI:**
-
-```bash
-python app.py --reset-db
+```http
+GET /categories
+GET /products
+GET /reviews?product_id=1
+POST /reviews   (auth required)
+{
+  "product_id": 1,
+  "rating": 5,
+  "comment": "Great product!"
+}
 ```
 
-**HTTP (удобно из фикстур pytest):**
+**Особенности (как в реальных проектах):**
+- Пагинация с `page`, `limit`, `total`, `total_pages`
+- Фильтрация по `category`
+- Только владелец может обновлять/удалять свои items (403)
+- Валидация (422)
+- Правильные статус-коды (200, 201, 204, 401, 403, 404, 422, 429, 500)
+- Reviews поддержка для UI тестов
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/v1/admin/reset
+### Edge-кейсы для практики
+
+```http
+POST /items/trigger-error
+{
+  "payload": "server_error"   # → 500
+}
+
+# Без payload или с другим значением может вернуть 429 (rate limit simulation)
 ```
 
-Ответ:
+### Сброс данных
 
-```json
-{"status": "ok", "message": "Database has been reset to initial state."}
+```http
+POST /admin/reset
+# Возвращает { "status": "ok", "message": "..." }
 ```
 
-Сброс удаляет файл БД, пересоздаёт схему и заново засеивает тестовых пользователей, товары и API-items.
+## Как писать тесты
 
-## Идеи для практики
+### Playwright (UI)
 
-- **Playwright:** login flow, добавление в корзину, checkout, logout, проверка редиректов
-- **requests:** CRUD API items, проверка кодов 401/403/404/422, пагинация, rate limit
-- **pytest fixtures:** `POST /admin/reset` в `autouse` fixture перед каждым тестом
+Используйте обычные `page.goto`, `locator('[data-testid="..."]')`.
+
+Все важные элементы помечены `data-testid`.
+
+### requests (API)
+
+```python
+import requests
+
+BASE = "https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api"
+
+# Логин
+r = requests.post(f"{BASE}/auth/login", json={
+    "email": "alice@example.com",
+    "password": "password123"
+})
+token = r.json()["access_token"]
+headers = {"Authorization": f"Bearer {token}"}
+
+# Создать item
+r = requests.post(f"{BASE}/items", json={"title": "Test"}, headers=headers)
+```
+
+### Сброс перед каждым тестом (рекомендуется)
+
+```python
+requests.post(f"{BASE}/admin/reset")
+```
+
+## Деплой на GitHub Pages
+
+Смотрите файл `DEPLOY.md`.
+
+Workflow деплоит только папку `site/`.
+
+## Полезные советы для практики
+
+- Используйте `/admin/reset` в `autouse` фикстуре pytest.
+- Тестируйте негативные сценарии через `/items/trigger-error`.
+- Проверяйте ownership (403 при попытке изменить чужой item).
+- Тестируйте пагинацию и фильтры.
+
+---
+
+Проект специально сделан так, чтобы имитировать поведение реальных веб-приложений, но при этом оставался максимально простым и предсказуемым для написания тестов.

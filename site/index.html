@@ -6,6 +6,7 @@
   <title>Teststand</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
 </head>
 <body>
   <header class="header" data-testid="site-header">
@@ -47,28 +48,28 @@
 
   <script src="app.js"></script>
   <script>
-    // Login page logic - use different variable name to avoid conflict with Supabase CDN global
     const client = window.createSupabaseClient();
+    const form = document.getElementById('login-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const errorEl = document.getElementById('error-message');
-      
-      errorEl.style.display = 'none';
-      errorEl.textContent = '';
+      window.hideError();
 
-      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      window.setLoading(submitBtn, true, 'Log in');
+
+      const { error } = await client.auth.signInWithPassword({ email, password });
+
+      window.setLoading(submitBtn, false);
 
       if (error) {
-        errorEl.textContent = error.message || 'Invalid email or password.';
-        errorEl.style.display = 'block';
+        window.showError(error.message || 'Invalid email or password.');
         return;
       }
 
-      // Success - go to dashboard
       window.location.href = 'dashboard.html';
     });
 

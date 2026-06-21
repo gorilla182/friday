@@ -6,6 +6,7 @@
   <title>Profile — Teststand</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
 </head>
 <body>
   <header class="header" data-testid="site-header">
@@ -32,6 +33,22 @@
         <dd data-testid="profile-order-count" id="profile-order-count"></dd>
       </dl>
 
+      <!-- New: Edit profile -->
+      <div data-testid="edit-profile-section" style="margin: 20px 0;">
+        <h3>Edit Name</h3>
+        <input type="text" id="edit-name" data-testid="edit-name-input" placeholder="New name">
+        <button id="save-name-btn" data-testid="save-name-button">Save</button>
+        <div id="edit-error" data-testid="edit-error" style="color:red; display:none;"></div>
+      </div>
+
+      <!-- New: Order history -->
+      <div data-testid="order-history-section">
+        <h3>Your Orders</h3>
+        <div id="orders-list" data-testid="orders-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
       <form id="logout-form" method="post" data-testid="logout-form">
         <button type="submit" class="btn-danger" data-testid="logout-submit">Log out</button>
       </form>
@@ -50,6 +67,7 @@
 
       const { data: { user: fresh } } = await client.auth.getUser();
       document.getElementById('profile-name').textContent = fresh?.user_metadata?.name || '—';
+      document.getElementById('edit-name').value = fresh?.user_metadata?.name || '';
 
       // Count orders
       const { count } = await client
@@ -58,7 +76,81 @@
         .eq('user_id', user.id);
 
       document.getElementById('profile-order-count').textContent = count || 0;
+
+      // Load order history (new)
+      await loadOrderHistory(user.id);
     }
+
+    async function loadOrderHistory(userId) {
+      const { data: orders, error } = await client
+        .from('orders')
+        .select(`
+          id, 
+          order_number, 
+          total, 
+          created_at,
+          order_items (
+            quantity, 
+            price,
+            products (name)
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const container = document.getElementById('orders-list');
+      container.innerHTML = '';
+
+      if (error || !orders || orders.length === 0) {
+        container.innerHTML = '<p data-testid="no-orders">No orders yet.</p>';
+        return;
+      }
+
+      orders.forEach(order => {
+        const div = document.createElement('div');
+        div.className = 'order-item';
+        div.setAttribute('data-testid', `order-${order.id}`);
+
+        let itemsHtml = '<ul>';
+        order.order_items.forEach(item => {
+          itemsHtml += `<li>${item.products?.name} x${item.quantity} — $${item.price}</li>`;
+        });
+        itemsHtml += '</ul>';
+
+        div.innerHTML = `
+          <strong data-testid="order-number-${order.id}">${order.order_number}</strong>
+          <span> — $${order.total} on ${new Date(order.created_at).toLocaleDateString()}</span>
+          ${itemsHtml}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // New: Edit name
+    document.getElementById('save-name-btn')?.addEventListener('click', async () => {
+      const newName = document.getElementById('edit-name').value.trim();
+      const errorEl = document.getElementById('edit-error');
+      errorEl.style.display = 'none';
+
+      if (!newName) {
+        errorEl.textContent = 'Name cannot be empty';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const { error } = await client.auth.updateUser({
+        data: { name: newName }
+      });
+
+      if (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+      } else {
+        document.getElementById('profile-name').textContent = newName;
+        alert('Name updated!');
+      }
+    });
 
     document.getElementById('logout-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();

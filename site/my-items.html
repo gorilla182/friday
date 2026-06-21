@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My API Items — Teststand</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+</head>
+<body>
+  <header class="header" data-testid="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
+      <nav class="nav" data-testid="main-nav">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="cart.html" data-testid="nav-cart">Cart</a>
+        <a href="profile.html" data-testid="nav-profile">Profile</a>
+        <a href="my-items.html" data-testid="nav-my-items">My API Items</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section data-testid="my-items-page">
+      <h1 data-testid="my-items-heading">My API Items</h1>
+      <p data-testid="my-items-description">Items you created via the API (for testing requests + UI bridge)</p>
+
+      <div id="my-items-list" data-testid="my-items-list">
+        <!-- Loaded via JS using direct Supabase or API -->
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <a href="dashboard.html" class="btn btn-secondary" data-testid="back-to-dashboard">Back to Dashboard</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const client = window.createSupabaseClient();
+
+    async function loadMyItems() {
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      // Use direct Supabase for simplicity, or could call /api/items with token
+      const { data: items, error } = await client
+        .from('api_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById('my-items-list');
+      container.innerHTML = '';
+
+      if (error || !items || items.length === 0) {
+        container.innerHTML = '<p data-testid="no-my-items">You have not created any API items yet. Use the API or create via tests.</p>';
+        return;
+      }
+
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item-card';
+        div.setAttribute('data-testid', `my-item-${item.id}`);
+        div.innerHTML = `
+          <h3 data-testid="my-item-title-${item.id}">${item.title}</h3>
+          <p>${item.description || ''}</p>
+          <small>Category: ${item.category} | Created: ${new Date(item.created_at).toLocaleDateString()}</small>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    loadMyItems();
+  </script>
+</body>
+</html>
