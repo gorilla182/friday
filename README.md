@@ -28,7 +28,8 @@ FastAPI лучше подошёл бы, если бы основной фоку�
 ## Установка и запуск
 
 ```bash
-cd teststand
+# After cloning the repository (directory name will match your repo name, e.g. "friday")
+cd friday
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -46,7 +47,7 @@ python app.py --host 0.0.0.0 --port 8080
 ## Структура проекта
 
 ```
-teststand/
+friday/   # (or your repo name)
 ├── app.py              # Точка входа, регистрация blueprints, CLI
 ├── config.py           # Константы (секреты, лимиты, пути к БД)
 ├── database.py         # SQLite: схема, seed, reset, хелперы
@@ -59,6 +60,7 @@ teststand/
 ├── templates/          # Jinja2-шаблоны
 ├── static/
 │   └── style.css       # Минимальные стили
+├── site/               # Static frontend for GitHub Pages (uses Supabase)
 ├── data/
 │   └── teststand.db    # SQLite (создаётся автоматически)
 ├── requirements.txt

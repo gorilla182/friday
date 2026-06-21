@@ -4,7 +4,7 @@ The static site lives in the `site/` folder.
 
 ## Quick deploy (recommended)
 
-1. Push this repository to GitHub (e.g. `https://github.com/USERNAME/teststand`)
+1. Push this repository to GitHub (e.g. `https://github.com/USERNAME/friday`)
 
 2. Go to your repository → **Settings → Pages**
 
@@ -14,7 +14,7 @@ The static site lives in the `site/` folder.
 4. Push to `main` branch (or run the workflow manually).
 
 The site will be available at:
-`https://USERNAME.github.io/teststand`
+`https://USERNAME.github.io/friday`
 
 ## How it works
 
@@ -25,7 +25,7 @@ The site will be available at:
 ## Important notes
 
 - The Supabase publishable key is **safe** to commit (it's meant for client-side).
-- If your repo name is not `teststand`, the URL will be `https://USERNAME.github.io/REPO-NAME`.
+- If your repo name is not `friday`, the URL will be `https://USERNAME.github.io/REPO-NAME`.
 - All links inside the site are relative, so subpath works.
 
 ## After first deploy
