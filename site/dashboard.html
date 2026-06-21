@@ -7,20 +7,10 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/header.js"></script>
 </head>
 <body>
-  <header class="header" data-testid="site-header">
-    <div class="container header-inner">
-      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
-      <nav class="nav" data-testid="main-nav">
-        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
-        <a href="cart.html" data-testid="nav-cart">Cart</a>
-        <a href="profile.html" data-testid="nav-profile">Profile</a>
-        <a href="my-items.html" data-testid="nav-my-items">My API Items</a>
-        <button id="logout-btn" data-testid="logout-submit" class="btn-danger">Log out</button>
-      </nav>
-    </div>
-  </header>
+  <!-- Header injected by js/header.js for consistency (includes nav and logout) -->
 
   <main class="container main">
     <section data-testid="dashboard-page">
@@ -64,10 +54,24 @@
     </div>
   </footer>
 
-  <script src="app.js"></script>
   <script>
     const client = window.createSupabaseClient();
     let allProducts = [];
+
+    function createFallbackCard(product) {
+      const el = document.createElement('article');
+      el.className = 'product-card';
+      el.setAttribute('data-testid', `product-card-${product.id}`);
+      el.innerHTML = `
+        <h2 data-testid="product-name-${product.id}">${product.name}</h2>
+        <p class="price" data-testid="product-price-${product.id}">$${product.price.toFixed(2)}</p>
+        <p class="description">${product.description || ''}</p>
+        <a href="item_detail.html?id=${product.id}" 
+           class="btn btn-secondary" 
+           data-testid="product-view-${product.id}">View details</a>
+      `;
+      return el;
+    }
 
     async function loadDashboard() {
       const user = await window.requireAuth(client);
@@ -107,19 +111,10 @@
       const container = document.getElementById('product-list');
       container.innerHTML = '';
 
-      products.forEach(product => {
-        const article = document.createElement('article');
-        article.className = 'product-card';
-        article.setAttribute('data-testid', `product-card-${product.id}`);
-
-        article.innerHTML = `
-          <h2 data-testid="product-name-${product.id}">${product.name}</h2>
-          <p class="price" data-testid="product-price-${product.id}">$${product.price.toFixed(2)}</p>
-          <p class="description">${product.description}</p>
-          <a href="item_detail.html?id=${product.id}" 
-             class="btn btn-secondary" 
-             data-testid="product-view-${product.id}">View details</a>
-        `;
+      products.forEach((product) => {
+        const article = (window as any).createProductCard 
+          ? (window as any).createProductCard(product) 
+          : createFallbackCard(product);
         container.appendChild(article);
       });
     }
@@ -133,7 +128,7 @@
       // Populate categories dynamically from products
       const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
       categorySelect.innerHTML = '<option value="">All Categories</option>';
-      categories.forEach((cat: string) => {
+      categories.forEach((cat) => {
         const opt = document.createElement('option');
         opt.value = cat;
         opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
@@ -146,7 +141,7 @@
         // Search by name
         const searchTerm = searchInput.value.toLowerCase().trim();
         if (searchTerm) {
-          filtered = filtered.filter((p: any) => 
+          filtered = filtered.filter((p) => 
             p.name.toLowerCase().includes(searchTerm) || 
             (p.description && p.description.toLowerCase().includes(searchTerm))
           );
@@ -155,19 +150,19 @@
         // Category filter
         const selectedCat = categorySelect.value;
         if (selectedCat) {
-          filtered = filtered.filter((p: any) => p.category === selectedCat);
+          filtered = filtered.filter((p) => p.category === selectedCat);
         }
 
         // Sort
         const sortValue = sortSelect.value;
         if (sortValue === 'name-asc') {
-          filtered.sort((a: any, b: any) => a.name.localeCompare(b.name));
+          filtered.sort((a, b) => a.name.localeCompare(b.name));
         } else if (sortValue === 'name-desc') {
-          filtered.sort((a: any, b: any) => b.name.localeCompare(a.name));
+          filtered.sort((a, b) => b.name.localeCompare(a.name));
         } else if (sortValue === 'price-low') {
-          filtered.sort((a: any, b: any) => a.price - b.price);
+          filtered.sort((a, b) => a.price - b.price);
         } else if (sortValue === 'price-high') {
-          filtered.sort((a: any, b: any) => b.price - a.price);
+          filtered.sort((a, b) => b.price - a.price);
         }
 
         renderProducts(filtered);

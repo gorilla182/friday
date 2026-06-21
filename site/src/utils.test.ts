@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterAndSortProducts, Product } from './utils';
+import { filterAndSortProducts, createProductCard, Product } from './utils';
 
 const mockProducts: Product[] = [
   { id: 1, name: 'Python Handbook', price: 29.99, description: 'Python guide', category: 'programming' },
@@ -34,5 +34,23 @@ describe('filterAndSortProducts', () => {
   it('combines search and sort', () => {
     const result = filterAndSortProducts(mockProducts, 'testing', 'price-high');
     expect(result[0].name).toBe('Playwright in Action');
+  });
+});
+
+describe('createProductCard', () => {
+  it('creates an article with correct data-testid', () => {
+    const product = mockProducts[0];
+    const card = createProductCard(product);
+    expect(card.tagName).toBe('ARTICLE');
+    expect(card.getAttribute('data-testid')).toBe(`product-card-${product.id}`);
+  });
+});
+
+describe('createProductCard', () => {
+  it('creates an article with correct data-testid', () => {
+    const product = mockProducts[0];
+    const card = createProductCard(product);
+    expect(card.tagName).toBe('ARTICLE');
+    expect(card.getAttribute('data-testid')).toBe(`product-card-${product.id}`);
   });
 });

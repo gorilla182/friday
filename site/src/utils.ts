@@ -48,3 +48,22 @@ export function filterAndSortProducts(
 
   return filtered;
 }
+
+export function createProductCard(product: Product): HTMLElement {
+  const article = document.createElement('article');
+  article.className = 'product-card';
+  article.setAttribute('data-testid', `product-card-${product.id}`);
+
+  article.innerHTML = `
+    <h2 data-testid="product-name-${product.id}">${product.name}</h2>
+    <p class="price" data-testid="product-price-${product.id}">$${product.price.toFixed(2)}</p>
+    <p class="description">${product.description || ''}</p>
+    <a href="item_detail.html?id=${product.id}" 
+       class="btn btn-secondary" 
+       data-testid="product-view-${product.id}">View details</a>
+  `;
+  return article;
+}
+
+// Attach to window for use in non-module scripts (browser static site)
+(window as any).createProductCard = createProductCard;

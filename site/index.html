@@ -7,13 +7,10 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/header.js"></script>
 </head>
 <body>
-  <header class="header" data-testid="site-header">
-    <div class="container header-inner">
-      <a href="index.html" class="logo" data-testid="site-logo">Teststand</a>
-    </div>
-  </header>
+  <!-- Header injected by js/header.js for consistency -->
 
   <main class="container">
     <section data-testid="login-page">
@@ -46,7 +43,6 @@
     </div>
   </footer>
 
-  <script src="app.js"></script>
   <script>
     const client = window.createSupabaseClient();
     const form = document.getElementById('login-form');

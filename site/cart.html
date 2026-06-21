@@ -7,18 +7,10 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/header.js"></script>
 </head>
 <body>
-  <header class="header" data-testid="site-header">
-    <div class="container header-inner">
-      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
-      <nav class="nav" data-testid="main-nav">
-        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
-        <a href="cart.html" data-testid="nav-cart">Cart</a>
-        <a href="profile.html" data-testid="nav-profile">Profile</a>
-      </nav>
-    </div>
-  </header>
+  <!-- Header injected by js/header.js -->
 
   <main class="container">
     <section data-testid="cart-page">
@@ -39,7 +31,6 @@
     </section>
   </main>
 
-  <script src="app.js"></script>
   <script>
     const client = window.createSupabaseClient();
 

@@ -283,6 +283,70 @@ serve(async (req: Request) => {
       return json(data, 201);
     }
 
+    if (path.startsWith("/reviews/") && method === "DELETE") {
+      const id = parseInt(path.split("/").pop() || "0");
+      const { data: userData } = await authedClient.auth.getUser();
+      if (!userData.user) return error("Authentication required", "unauthorized", 401);
+
+      const { data: existing } = await authedClient.from("reviews").select("user_id").eq("id", id).single();
+      if (!existing) return error("Review not found", "not_found", 404);
+      if (existing.user_id !== userData.user.id) return error("You can only delete your own reviews", "forbidden", 403);
+
+      const { error: err } = await authedClient.from("reviews").delete().eq("id", id);
+      if (err) return error(err.message, "db_error", 500);
+      return new Response(null, { status: 204 });
+    }
+
+    // ============ ORDERS (for user orders via API) ============
+    if (path === "/orders" && method === "GET") {
+      const { data: userData } = await authedClient.auth.getUser();
+      if (!userData.user) return error("Authentication required", "unauthorized", 401);
+
+      const { data: orders, error: err } = await authedClient
+        .from("orders")
+        .select(`
+          id, order_number, total, created_at,
+          order_items (quantity, price, products (name))
+        `)
+        .eq("user_id", userData.user.id)
+        .order("created_at", { ascending: false });
+
+      if (err) return error(err.message, "db_error", 500);
+      return json(orders);
+    }
+
+    // ============ USER PROFILE ============
+    if (path === "/profile" && method === "GET") {
+      const { data: userData } = await authedClient.auth.getUser();
+      if (!userData.user) return error("Authentication required", "unauthorized", 401);
+
+      const { data: ordersCount } = await authedClient
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userData.user.id);
+
+      return json({
+        id: userData.user.id,
+        email: userData.user.email,
+        name: userData.user.user_metadata?.name || "",
+        orders_count: ordersCount || 0,
+      });
+    }
+
+    if (path === "/profile" && method === "PUT") {
+      const body = await req.json();
+      const { name } = body;
+      const { data: userData } = await authedClient.auth.getUser();
+      if (!userData.user) return error("Authentication required", "unauthorized", 401);
+
+      const { data, error: err } = await authedClient.auth.updateUser({
+        data: { name },
+      });
+
+      if (err) return error(err.message, "update_error", 400);
+      return json({ id: userData.user.id, name });
+    }
+
     return error("Not found", "not_found", 404);
   } catch (e) {
     console.error(e);
