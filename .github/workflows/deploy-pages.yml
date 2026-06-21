@@ -15,7 +15,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-<<<<<<< HEAD
   build:
     runs-on: ubuntu-latest
     steps:
@@ -25,33 +24,15 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Path to the static site files (our site/ folder)
           path: ./site
 
-=======
->>>>>>> aad0cefd8c3dd2ee961cf2ebd5106c72e81dceac
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-<<<<<<< HEAD
     needs: build
     steps:
-=======
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './site'   # Deploy contents of the site/ folder
-
->>>>>>> aad0cefd8c3dd2ee961cf2ebd5106c72e81dceac
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
