@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — Teststand</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="header" data-testid="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
+      <nav class="nav" data-testid="main-nav">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="cart.html" data-testid="nav-cart">Cart</a>
+        <a href="profile.html" data-testid="nav-profile">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section data-testid="checkout-page">
+      <h1 data-testid="checkout-heading">Checkout</h1>
+      <p>Review your order and confirm.</p>
+
+      <div id="checkout-summary"></div>
+
+      <button id="place-order-btn" data-testid="place-order-button" class="btn">Place order</button>
+
+      <div id="error-message" data-testid="error-message" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const client = window.createSupabaseClient();
+
+    async function loadCheckout() {
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      const { data: cartItems, error } = await client
+        .from('cart_items')
+        .select(`quantity, products(id, name, price)`)
+        .eq('user_id', user.id);
+
+      const summary = document.getElementById('checkout-summary');
+
+      if (error || !cartItems || cartItems.length === 0) {
+        summary.innerHTML = `<p>Your cart is empty. <a href="cart.html">Go back</a></p>`;
+        return;
+      }
+
+      let total = 0;
+      let html = '<ul>';
+      cartItems.forEach(item => {
+        const sub = item.products.price * item.quantity;
+        total += sub;
+        html += `<li>${item.products.name} x ${item.quantity} = $${sub.toFixed(2)}</li>`;
+      });
+      html += `</ul><strong>Total: $${total.toFixed(2)}</strong>`;
+
+      summary.innerHTML = html;
+    }
+
+    document.getElementById('place-order-btn').addEventListener('click', async () => {
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      // Get cart again
+      const { data: cartItems } = await client
+        .from('cart_items')
+        .select(`quantity, product_id, products(price)`)
+        .eq('user_id', user.id);
+
+      if (!cartItems || cartItems.length === 0) {
+        window.showError('Cart is empty');
+        return;
+      }
+
+      const total = cartItems.reduce((sum, i) => sum + (i.products.price * i.quantity), 0);
+      const orderNumber = 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      // Create order
+      const { data: order, error: orderErr } = await client
+        .from('orders')
+        .insert({ user_id: user.id, order_number: orderNumber, total })
+        .select()
+        .single();
+
+      if (orderErr) {
+        window.showError('Order failed: ' + orderErr.message);
+        return;
+      }
+
+      // Create order items
+      const orderItems = cartItems.map(i => ({
+        order_id: order.id,
+        product_id: i.product_id,
+        quantity: i.quantity,
+        price: i.products.price
+      }));
+
+      await client.from('order_items').insert(orderItems);
+
+      // Clear cart
+      await client.from('cart_items').delete().eq('user_id', user.id);
+
+      window.location.href = `success.html?order_number=${orderNumber}`;
+    });
+
+    loadCheckout();
+  </script>
+</body>
+</html>

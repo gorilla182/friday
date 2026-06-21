@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teststand — Supabase Connection Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; line-height: 1.5; }
+    h1 { color: #1a1a2e; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .product { border: 1px solid #eee; padding: 12px; border-radius: 6px; }
+    input, button { padding: 8px 12px; margin: 4px 0; }
+    button { background: #1a1a2e; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #333; }
+    .error { color: #c00; }
+    .success { color: #080; }
+    pre { background: #f4f4f4; padding: 12px; overflow: auto; }
+    .section { margin-top: 30px; }
+    .user { background: #f0f4ff; padding: 10px; border-radius: 6px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Teststand → Supabase Test</h1>
+  <p>This page tests direct connection from browser to your Supabase project (for GitHub Pages).</p>
+
+  <div class="card">
+    <h3>Configuration</h3>
+    <label>Supabase URL<br>
+      <input id="url" value="https://fvxhcfisnsganugrgqnm.supabase.co" style="width: 100%;">
+    </label><br>
+    <label>Publishable Key<br>
+      <input id="key" value="sb_publishable_Vmw74XMZBjinMVYEoJu6FA_K6lU2fMk" style="width: 100%;">
+    </label><br>
+    <button onclick="initSupabase()">Connect / Reconnect</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card section">
+    <h3>Authentication</h3>
+    <div>
+      <input id="email" placeholder="email" value="alice@example.com">
+      <input id="password" placeholder="password" value="password123" type="password">
+      <button onclick="login()">Log in</button>
+      <button onclick="logout()">Log out</button>
+    </div>
+    <div id="user-info" class="user" style="display:none;"></div>
+  </div>
+
+  <div class="card section">
+    <h3>Products (public read)</h3>
+    <button onclick="loadProducts()">Load Products</button>
+    <div id="products" class="grid"></div>
+  </div>
+
+  <div class="card section">
+    <h3>API Items (RLS protected)</h3>
+    <button onclick="loadApiItems()">Load My Items</button>
+
+    <div style="margin-top: 12px;">
+      <input id="item-title" placeholder="Title" value="Write new test">
+      <input id="item-desc" placeholder="Description" value="Practice with Supabase">
+      <input id="item-cat" placeholder="Category" value="testing">
+      <button onclick="createApiItem()">Create Item</button>
+    </div>
+
+    <div id="api-items" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="card section">
+    <h3>Debug</h3>
+    <button onclick="showSession()">Show current session</button>
+    <pre id="debug"></pre>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Use a different name to avoid conflict with window.supabase from the CDN
+    let sbClient = null;
+    let currentUser = null;
+
+    function initSupabase() {
+      const url = document.getElementById('url').value.trim();
+      const key = document.getElementById('key').value.trim();
+
+      if (!url || !key) {
+        document.getElementById('status').innerHTML = '<span class="error">URL and key are required</span>';
+        return;
+      }
+
+      sbClient = window.supabase.createClient(url, key);
+      document.getElementById('status').innerHTML = '<span class="success">Supabase client initialized ✓</span>';
+      console.log('Supabase client ready');
+    }
+
+    async function login() {
+      if (!sbClient) initSupabase();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        alert('Login failed: ' + error.message);
+        return;
+      }
+
+      currentUser = data.user;
+      showUser(currentUser);
+      document.getElementById('debug').textContent = JSON.stringify(data.session, null, 2);
+    }
+
+    async function logout() {
+      if (!sbClient) return;
+      await sbClient.auth.signOut();
+      currentUser = null;
+      document.getElementById('user-info').style.display = 'none';
+      document.getElementById('debug').textContent = 'Logged out';
+    }
+
+    function showUser(user) {
+      const el = document.getElementById('user-info');
+      el.style.display = 'block';
+      el.innerHTML = `
+        <strong>Logged in as:</strong> ${user.email}<br>
+        <strong>ID:</strong> ${user.id}<br>
+        <small>Created: ${user.created_at}</small>
+      `;
+    }
+
+    async function loadProducts() {
+      if (!sbClient) initSupabase();
+
+      const { data, error } = await sbClient
+        .from('products')
+        .select('*')
+        .order('id');
+
+      const container = document.getElementById('products');
+      container.innerHTML = '';
+
+      if (error) {
+        container.innerHTML = `<span class="error">${error.message}</span>`;
+        return;
+      }
+
+      data.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'product';
+        div.innerHTML = `
+          <strong>${p.name}</strong><br>
+          <small>${p.description}</small><br>
+          <strong>$${p.price}</strong><br>
+          <button data-product-id="${p.id}">Add to cart (stub)</button>
+        `;
+        container.appendChild(div);
+      });
+
+      // Attach listeners for dynamic buttons (avoids inline onclick issues)
+      container.querySelectorAll('button[data-product-id]').forEach(btn => {
+        btn.onclick = () => addToCart(btn.dataset.productId);
+      });
+    }
+
+    async function loadApiItems() {
+      if (!sbClient) initSupabase();
+
+      const { data, error } = await sbClient
+        .from('api_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById('api-items');
+      container.innerHTML = '';
+
+      if (error) {
+        container.innerHTML = `<span class="error">${error.message}</span>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = '<em>No items yet. Create one!</em>';
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      data.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <strong>[${item.category}]</strong> ${item.title} — ${item.description}
+          <small>(owner: ${item.user_id ? item.user_id.slice(0,8) : 'unknown'}...)</small>
+        `;
+        ul.appendChild(li);
+      });
+      container.appendChild(ul);
+    }
+
+    async function createApiItem() {
+      if (!sbClient) initSupabase();
+
+      const title = document.getElementById('item-title').value.trim();
+      const description = document.getElementById('item-desc').value.trim();
+      const category = document.getElementById('item-cat').value.trim() || 'general';
+
+      if (!title) {
+        alert('Title is required');
+        return;
+      }
+
+      // Get current authenticated user (more reliable than relying on variable)
+      const { data: { user }, error: userError } = await sbClient.auth.getUser();
+      if (userError || !user) {
+        alert('You must be logged in to create items');
+        return;
+      }
+
+      const { data, error } = await sbClient
+        .from('api_items')
+        .insert([{
+          title,
+          description,
+          category,
+          user_id: user.id   // <-- This is required for the RLS policy
+        }])
+        .select();
+
+      if (error) {
+        alert('Error creating item: ' + error.message);
+        console.error(error);
+        return;
+      }
+
+      alert('Item created successfully!');
+      loadApiItems();
+    }
+
+    function addToCart(productId) {
+      alert('Cart functionality will be implemented in the real static frontend. Product ID: ' + productId);
+    }
+
+    async function showSession() {
+      if (!sbClient) return;
+      const { data } = await sbClient.auth.getSession();
+      document.getElementById('debug').textContent = JSON.stringify(data, null, 2);
+    }
+
+    // Make functions available globally for inline onclick (backup)
+    window.initSupabase = initSupabase;
+    window.login = login;
+    window.logout = logout;
+    window.loadProducts = loadProducts;
+    window.loadApiItems = loadApiItems;
+    window.createApiItem = createApiItem;
+    window.showSession = showSession;
+    window.addToCart = addToCart;
+
+    // Auto-init + better event attachment
+    async function setup() {
+      initSupabase();
+
+      // Re-attach main buttons to be safe
+      const connectBtn = document.querySelector('button[onclick*="initSupabase"]');
+      if (connectBtn) connectBtn.onclick = initSupabase;
+
+      // Restore session if user already logged in (Supabase stores it in localStorage)
+      try {
+        const { data: { user } } = await sbClient.auth.getUser();
+        if (user) {
+          currentUser = user;
+          showUser(user);
+          console.log('Restored previous session for', user.email);
+        }
+      } catch (e) {}
+
+      console.log('%c[Test page] Ready. Try logging in with alice@example.com / password123', 'color:#666');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setup);
+    } else {
+      setup();
+    }
+  </script>
+</body>
+</html>

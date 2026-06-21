@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Item — Teststand</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="header" data-testid="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
+      <nav class="nav" data-testid="main-nav">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="cart.html" data-testid="nav-cart">Cart</a>
+        <a href="profile.html" data-testid="nav-profile">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section data-testid="item-detail-page">
+      <div id="item-content">
+        <!-- JS populates this -->
+      </div>
+
+      <form id="add-to-cart-form" style="margin-top: 1.5rem;" data-testid="add-to-cart-form">
+        <label>Quantity
+          <input type="number" id="quantity" value="1" min="1" data-testid="quantity-input">
+        </label>
+        <button type="submit" data-testid="add-to-cart-submit">Add to cart</button>
+      </form>
+
+      <div id="error-message" data-testid="error-message" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const client = window.createSupabaseClient();
+
+    async function loadItem() {
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+
+      if (!id) {
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      const { data: product, error } = await client
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      const container = document.getElementById('item-content');
+
+      if (error || !product) {
+        container.innerHTML = `<p>Product not found.</p>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <h1 data-testid="item-name">${product.name}</h1>
+        <p class="price" data-testid="item-price">$${product.price.toFixed(2)}</p>
+        <p data-testid="item-description">${product.description}</p>
+        <a href="dashboard.html" data-testid="back-link">← Back to catalog</a>
+      `;
+    }
+
+    document.getElementById('add-to-cart-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const productId = parseInt(params.get('id'));
+      const quantity = parseInt(document.getElementById('quantity').value) || 1;
+
+      const { error } = await client
+        .from('cart_items')
+        .upsert({ 
+          user_id: user.id, 
+          product_id: productId, 
+          quantity 
+        }, { 
+          onConflict: 'user_id,product_id' 
+        });
+
+      if (error) {
+        window.showError('Failed to add to cart: ' + error.message);
+      } else {
+        window.location.href = 'cart.html';
+      }
+    });
+
+    loadItem();
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — Teststand</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="header" data-testid="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
+      <nav class="nav" data-testid="main-nav">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="cart.html" data-testid="nav-cart">Cart</a>
+        <a href="profile.html" data-testid="nav-profile">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section data-testid="profile-page">
+      <h1 data-testid="profile-heading">Your profile</h1>
+
+      <dl class="profile-details" data-testid="profile-details">
+        <dt>Name</dt>
+        <dd data-testid="profile-name" id="profile-name"></dd>
+        <dt>Email</dt>
+        <dd data-testid="profile-email" id="profile-email"></dd>
+        <dt>Orders placed</dt>
+        <dd data-testid="profile-order-count" id="profile-order-count"></dd>
+      </dl>
+
+      <form id="logout-form" method="post" data-testid="logout-form">
+        <button type="submit" class="btn-danger" data-testid="logout-submit">Log out</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const client = window.createSupabaseClient();
+
+    async function loadProfile() {
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      document.getElementById('profile-email').textContent = user.email;
+
+      const { data: { user: fresh } } = await client.auth.getUser();
+      document.getElementById('profile-name').textContent = fresh?.user_metadata?.name || '—';
+
+      // Count orders
+      const { count } = await client
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      document.getElementById('profile-order-count').textContent = count || 0;
+    }
+
+    document.getElementById('logout-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await client.auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

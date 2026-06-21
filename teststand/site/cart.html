@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart — Teststand</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="header" data-testid="site-header">
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo" data-testid="site-logo">Teststand</a>
+      <nav class="nav" data-testid="main-nav">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="cart.html" data-testid="nav-cart">Cart</a>
+        <a href="profile.html" data-testid="nav-profile">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section data-testid="cart-page">
+      <h1 data-testid="cart-heading">Shopping cart</h1>
+      
+      <div id="cart-content" data-testid="cart-table">
+        <!-- Populated by JS -->
+      </div>
+
+      <div id="cart-total" style="margin-top: 1rem; font-weight: bold;"></div>
+
+      <div style="margin-top: 1.5rem;">
+        <a href="dashboard.html" class="btn btn-secondary">Continue shopping</a>
+        <button id="checkout-btn" class="btn" data-testid="checkout-button" style="margin-left: 1rem;">Proceed to checkout</button>
+      </div>
+
+      <div id="error-message" data-testid="error-message" style="display:none; color: red;"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const client = window.createSupabaseClient();
+
+    async function loadCart() {
+      const user = await window.requireAuth(client);
+      if (!user) return;
+
+      const { data: items, error } = await client
+        .from('cart_items')
+        .select(`
+          id,
+          quantity,
+          product_id,
+          products (id, name, price, description)
+        `)
+        .eq('user_id', user.id);
+
+      const container = document.getElementById('cart-content');
+      const totalEl = document.getElementById('cart-total');
+
+      if (error) {
+        container.innerHTML = `<p>Error loading cart.</p>`;
+        return;
+      }
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `<p data-testid="empty-cart">Your cart is empty.</p>`;
+        totalEl.textContent = '';
+        return;
+      }
+
+      let html = `<table class="cart-table" data-testid="cart-table"><thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr></thead><tbody>`;
+      let total = 0;
+
+      items.forEach(item => {
+        const prod = item.products;
+        const subtotal = prod.price * item.quantity;
+        total += subtotal;
+
+        html += `
+          <tr data-testid="cart-row-${item.id}">
+            <td data-testid="cart-item-name-${item.id}">${prod.name}</td>
+            <td data-testid="cart-item-price-${item.id}">$${prod.price.toFixed(2)}</td>
+            <td>
+              <form class="inline-form" data-testid="cart-update-form-${item.id}">
+                <input type="number" value="${item.quantity}" min="1" data-item-id="${item.id}" data-testid="cart-quantity-${item.id}" style="width:60px">
+                <button type="submit" data-testid="cart-update-submit-${item.id}">Update</button>
+              </form>
+            </td>
+            <td data-testid="cart-subtotal-${item.id}">$${subtotal.toFixed(2)}</td>
+            <td>
+              <form class="inline-form" data-testid="cart-remove-form-${item.id}">
+                <button type="submit" data-testid="cart-remove-submit-${item.id}">Remove</button>
+              </form>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+      totalEl.innerHTML = `Total: $${total.toFixed(2)}`;
+
+      // Attach update listeners
+      container.querySelectorAll('form[data-testid^="cart-update-form"]').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const input = form.querySelector('input');
+          const itemId = input.dataset.itemId;
+          const newQty = parseInt(input.value);
+
+          await client.from('cart_items').update({ quantity: newQty }).eq('id', itemId);
+          loadCart();
+        });
+      });
+
+      // Attach remove listeners
+      container.querySelectorAll('form[data-testid^="cart-remove-form"]').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const itemId = form.dataset.testid.split('-').pop(); // rough
+          // Better: find the row
+          const row = form.closest('tr');
+          const id = row.dataset.testid.split('-').pop();
+          await client.from('cart_items').delete().eq('id', id);
+          loadCart();
+        });
+      });
+    }
+
+    // Checkout stub
+    document.getElementById('checkout-btn')?.addEventListener('click', () => {
+      window.location.href = 'checkout.html';
+    });
+
+    loadCart();
+  </script>
+</body>
+</html>
