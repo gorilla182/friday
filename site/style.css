@@ -164,6 +164,57 @@ button:hover,
     color: #155724;
 }
 
+/* Improved visuals */
+.filters {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.filters input,
+.filters select,
+.filters button {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.filters button {
+    background: #f3f4f6;
+    cursor: pointer;
+}
+
+.filters button:hover {
+    background: #e5e7eb;
+}
+
+.review-item, .order-item {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e2e8f0;
+}
+
+#reviews-list, #orders-list, #my-reviews-list {
+    margin-top: 0.5rem;
+}
+
+h1, h2, h3 {
+    color: #1e293b;
+}
+
+a {
+    color: #4361ee;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
 .product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -176,6 +227,13 @@ button:hover,
     padding: 1.25rem;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #eee;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .price {

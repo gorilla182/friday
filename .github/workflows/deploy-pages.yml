@@ -21,6 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps and build TS
+        run: |
+          npm install
+          npm run build  # compiles site/src/*.ts to site/js/*.js
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

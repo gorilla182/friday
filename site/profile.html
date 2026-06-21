@@ -49,6 +49,14 @@
         </div>
       </div>
 
+      <!-- New: My Reviews -->
+      <div data-testid="my-reviews-section" style="margin-top: 1.5rem;">
+        <h3>My Reviews</h3>
+        <div id="my-reviews-list" data-testid="my-reviews-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
       <form id="logout-form" method="post" data-testid="logout-form">
         <button type="submit" class="btn-danger" data-testid="logout-submit">Log out</button>
       </form>
@@ -79,6 +87,43 @@
 
       // Load order history (new)
       await loadOrderHistory(user.id);
+      await loadMyReviews(user.id);
+    }
+
+    async function loadMyReviews(userId) {
+      const { data: reviews, error } = await client
+        .from('reviews')
+        .select(`
+          id, 
+          rating, 
+          comment, 
+          created_at,
+          products (name)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const container = document.getElementById('my-reviews-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (error || !reviews || reviews.length === 0) {
+        container.innerHTML = '<p data-testid="no-my-reviews">You have not left any reviews yet.</p>';
+        return;
+      }
+
+      reviews.forEach((r) => {
+        const div = document.createElement('div');
+        div.className = 'review-item';
+        div.setAttribute('data-testid', `my-review-${r.id}`);
+        div.innerHTML = `
+          <strong>${r.products?.name || 'Unknown product'}</strong> — ${r.rating}/5
+          <p>${r.comment || '(no comment)'}</p>
+          <small>${new Date(r.created_at).toLocaleDateString()}</small>
+        `;
+        container.appendChild(div);
+      });
     }
 
     async function loadOrderHistory(userId) {

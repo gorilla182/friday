@@ -1,0 +1,17 @@
+{
+  "name": "friday-teststand",
+  "version": "1.0.0",
+  "description": "Test stand for Playwright and API testing practice",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "jsdom": "^24.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

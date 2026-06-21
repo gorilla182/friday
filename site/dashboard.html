@@ -126,20 +126,21 @@
       });
     }
 
-    // Simple category mapping for demo (expandable)
-    const categoryMap = {
-      1: 'programming', // Python Handbook
-      2: 'testing',     // Playwright in Action
-      3: 'testing',     // API Testing Cookbook
-      4: 'testing',     // Test Data Builder
-      5: 'testing'      // Locators Guide
-    };
-
     function setupFilters() {
       const searchInput = document.getElementById('search-input');
       const sortSelect = document.getElementById('sort-select');
       const categorySelect = document.getElementById('category-select');
       const clearBtn = document.getElementById('clear-filters');
+
+      // Populate categories dynamically from products
+      const categories = [...new Set(allProducts.map((p: any) => p.category).filter(Boolean))];
+      categorySelect.innerHTML = '<option value="">All Categories</option>';
+      categories.forEach((cat: string) => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+        categorySelect.appendChild(opt);
+      });
 
       const filterAndRender = () => {
         let filtered = [...allProducts];
@@ -147,7 +148,7 @@
         // Search by name
         const searchTerm = searchInput.value.toLowerCase().trim();
         if (searchTerm) {
-          filtered = filtered.filter(p => 
+          filtered = filtered.filter((p: any) => 
             p.name.toLowerCase().includes(searchTerm) || 
             (p.description && p.description.toLowerCase().includes(searchTerm))
           );
@@ -156,19 +157,19 @@
         // Category filter
         const selectedCat = categorySelect.value;
         if (selectedCat) {
-          filtered = filtered.filter(p => categoryMap[p.id] === selectedCat);
+          filtered = filtered.filter((p: any) => p.category === selectedCat);
         }
 
         // Sort
         const sortValue = sortSelect.value;
         if (sortValue === 'name-asc') {
-          filtered.sort((a, b) => a.name.localeCompare(b.name));
+          filtered.sort((a: any, b: any) => a.name.localeCompare(b.name));
         } else if (sortValue === 'name-desc') {
-          filtered.sort((a, b) => b.name.localeCompare(a.name));
+          filtered.sort((a: any, b: any) => b.name.localeCompare(a.name));
         } else if (sortValue === 'price-low') {
-          filtered.sort((a, b) => a.price - b.price);
+          filtered.sort((a: any, b: any) => a.price - b.price);
         } else if (sortValue === 'price-high') {
-          filtered.sort((a, b) => b.price - a.price);
+          filtered.sort((a: any, b: any) => b.price - a.price);
         }
 
         renderProducts(filtered);
