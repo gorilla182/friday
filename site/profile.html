@@ -57,9 +57,7 @@
         </div>
       </div>
 
-      <form id="logout-form" method="post" data-testid="logout-form">
-        <button type="submit" class="btn-danger" data-testid="logout-submit">Log out</button>
-      </form>
+      <button id="logout-btn" class="btn-danger" data-testid="logout-submit">Log out</button>
     </section>
   </main>
 
@@ -197,8 +195,7 @@
       }
     });
 
-    document.getElementById('logout-form')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
       await client.auth.signOut();
       window.location.href = 'index.html';
     });

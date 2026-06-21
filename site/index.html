@@ -61,16 +61,21 @@
 
       window.setLoading(submitBtn, true, 'Log in');
 
-      const { error } = await client.auth.signInWithPassword({ email, password });
+      try {
+        const { error } = await client.auth.signInWithPassword({ email, password });
 
-      window.setLoading(submitBtn, false);
+        window.setLoading(submitBtn, false);
 
-      if (error) {
-        window.showError(error.message || 'Invalid email or password.');
-        return;
+        if (error) {
+          window.showError(error.message || 'Invalid email or password.');
+          return;
+        }
+
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        window.setLoading(submitBtn, false);
+        window.showError('Login failed: ' + (err.message || err));
       }
-
-      window.location.href = 'dashboard.html';
     });
 
     // Auto-redirect if already logged in

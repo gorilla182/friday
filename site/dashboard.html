@@ -17,9 +17,7 @@
         <a href="cart.html" data-testid="nav-cart">Cart</a>
         <a href="profile.html" data-testid="nav-profile">Profile</a>
         <a href="my-items.html" data-testid="nav-my-items">My API Items</a>
-        <form id="logout-form" method="post" style="display:inline;">
-          <button type="submit" data-testid="logout-submit" class="btn-danger">Log out</button>
-        </form>
+        <button id="logout-btn" data-testid="logout-submit" class="btn-danger">Log out</button>
       </nav>
     </div>
   </header>
@@ -133,7 +131,7 @@
       const clearBtn = document.getElementById('clear-filters');
 
       // Populate categories dynamically from products
-      const categories = [...new Set(allProducts.map((p: any) => p.category).filter(Boolean))];
+      const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
       categorySelect.innerHTML = '<option value="">All Categories</option>';
       categories.forEach((cat: string) => {
         const opt = document.createElement('option');
@@ -188,8 +186,7 @@
     }
 
     // Logout
-    document.getElementById('logout-form')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
       await client.auth.signOut();
       window.location.href = 'index.html';
     });
