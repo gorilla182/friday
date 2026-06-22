@@ -105,11 +105,7 @@ window.initAuthenticatedPage('item', 'Товар', async ({ client, user, curren
         if (window.showToast) window.showToast('Ошибка отправки отзыва', 'error');
       }
     };
-  } catch (e) {
-    console.error('Item detail error', e);
-    document.body.innerHTML = `<div data-testid="error-state">Error loading item: ${e && e.message ? e.message : e}. <a href="dashboard.html">Back</a></div>`;
-  }
-});
+  });
 </script>
 </body>
 </html>

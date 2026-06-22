@@ -10,6 +10,16 @@
 // - API Items (for test API practice)
 // - Shared UI helpers (render, format, etc)
 
+// Helper for product image key (phones/tablets/laptops)
+function getProductImageKey(category) {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('phone')) return 'phone';
+  if (cat.includes('tablet')) return 'tablet';
+  if (cat.includes('laptop')) return 'laptop';
+  return 'device';
+}
+
+
 // --- Products & Catalog ---
 window.loadProducts = async (client) => {
   const { data, error } = await client
@@ -29,7 +39,7 @@ window.loadProducts = async (client) => {
     price: Number(p.price) || 0,
     stock: 10, // default since not in schema, for UI
     rating: 4.5, // default
-    img: (p.category || 'general').toLowerCase().includes('test') ? 'tablet' : 'keyboard' // simple mapping
+    img: getProductImageKey(p.category) // phones / tablets / laptops
   }));
 };
 
@@ -123,8 +133,18 @@ window.clearCartDB = async (client, userId) => {
 window.formatPrice = (n) => '$' + (n || 0).toFixed(2);
 
 window.productIcon = (key, size = 40) => {
-  const defaultIcon = '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>';
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${defaultIcon}</svg>`;
+  const k = (key || '').toLowerCase();
+  let icon = '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>'; // default
+
+  if (k.includes('phone')) {
+    icon = '<rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/><line x1="9" y1="5" x2="15" y2="5"/>';
+  } else if (k.includes('tablet')) {
+    icon = '<rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1"/>';
+  } else if (k.includes('laptop')) {
+    icon = '<rect x="3" y="5" width="18" height="12" rx="1"/><path d="M2 19h20M5 17v2h14v-2"/>';
+  }
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
 };
 
 window.renderProductCard = (p, currentQty = 0) => {

@@ -48,19 +48,39 @@
   const form = document.getElementById('register-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+    const name = document.getElementById('name').value.trim();
+    const email = emailEl.value.trim();
+    const password = passEl.value;
+
     try {
-      const name = document.getElementById('name').value;
-      const { error } = await client.auth.signUp({
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
+      // 1. Register (writes user to auth DB + metadata)
+      const { error: regError } = await client.auth.signUp({
+        email,
+        password,
         options: { data: { name } }
       });
-      if (error) {
-        alert(error.message);
-      } else {
-        alert('Регистрация успешна. Проверьте почту если требуется.');
-        window.location.href = 'index.html';
+
+      if (regError) {
+        alert(regError.message);
+        return;
       }
+
+      // 2. Immediately login with same credentials
+      const { error: loginError } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (loginError) {
+        alert('Регистрация прошла успешно, но автоматический вход не удался: ' + loginError.message + '\nПожалуйста, войдите вручную.');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // 3. Success - redirect to dashboard (record in DB is saved via auth + metadata)
+      window.location.href = 'dashboard.html';
     } catch (e) {
       alert('Error: ' + e.message);
     }
