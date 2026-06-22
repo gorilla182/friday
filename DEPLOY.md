@@ -72,17 +72,46 @@ Vercel даёт быстрые деплои, preview-ссылки на кажд�
 
    Скопируй `orgId` как `VERCEL_ORG_ID` и `projectId` как `VERCEL_PROJECT_ID`.
 
-2. В GitHub репозитории добавь секреты:
-   - `VERCEL_TOKEN` (создай здесь: https://vercel.com/account/tokens)
-   - `VERCEL_ORG_ID` (можно попробовать без него на Hobby)
+2. В GitHub репозитории перейди в:
+   **Settings → Secrets and variables → Actions**
+
+   **Важно:**
+
+GitHub имеет два места для хранения значений:
+
+- **Secrets** — для чувствительных данных (токены, пароли, ключи). Они зашифрованы, не показываются в логах и доступны только через `${{ secrets.NAME }}`.
+- **Variables** — для обычных настроек (например, имя окружения). Они видны в интерфейсе и логах, доступны через `${{ vars.NAME }}`.
+
+Для Vercel деплоя:
+
+- `VERCEL_TOKEN` — **обязательно** добавляй в **Secrets**.
+- `VERCEL_ORG_ID` и `VERCEL_PROJECT_ID` — тоже **лучше добавлять в Secrets** (для единообразия).
+
+В нашем workflow мы используем именно `secrets.` (а не `vars.`).
+
+Где добавлять:
+1. Зайди в репозиторий на GitHub
+2. **Settings → Secrets and variables → Actions**
+3. Переключись на вкладку **Secrets** (не Variables!)
+4. Нажми "New repository secret" и добавь три значения:
+   - `VERCEL_TOKEN`
+   - `VERCEL_ORG_ID`
    - `VERCEL_PROJECT_ID`
+
+Если по какой-то причине хочешь положить Org ID и Project ID в Variables — скажи, я подправлю workflow. Но стандартный и рекомендуемый вариант — все трое в **Secrets**.
+
+   Создать токен можно здесь: https://vercel.com/account/tokens (нужен Full Access)
 
 3. Workflow `.github/workflows/deploy-vercel.yml` запустится автоматически:
    - Pull Request → Preview
    - Пуш в main → Production
 
 **Примечание для бесплатного тарифа (Hobby):**  
-У тебя есть Org ID (это ID твоего личного аккаунта). Если не получается найти его в дашборде — используй способ с `vercel link` выше. В некоторых случаях на Hobby можно деплоить и без `VERCEL_ORG_ID`, оставив только Token + Project ID.
+На Hobby у тебя **есть** Org ID — это ID твоего личного аккаунта. Vercel требует его, если ты указываешь `VERCEL_PROJECT_ID`.
+
+Если в production job падает ошибка "You specified `VERCEL_PROJECT_ID` but you forgot to specify `VERCEL_ORG_ID`" — значит секрет `VERCEL_ORG_ID` не задан или пустой.
+
+Обязательно получи его через `vercel link` (см. инструкцию выше) и добавь в секреты.
 
 **Важно:** Не передавай `--token` в команде. CLI берёт его из переменной окружения.
 

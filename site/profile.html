@@ -31,7 +31,6 @@
 
   const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: user.email || '' };
   window.CURRENT_USER = currentUser;
-  CURRENT_USER = currentUser;
 
   // ensure badge populated before mount (shared helper)
   await window.syncStoreFromDB(client, user.id);
@@ -329,7 +328,7 @@
   });
   } catch (e) {
     console.error('Profile load error', e);
-    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading profile. <a href="index.html">Go to login</a></div>';
+    document.body.innerHTML = `<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading profile: ${e && e.message ? e.message : e}. <a href="index.html">Go to login</a></div>`;
   }
 })();
 </script>

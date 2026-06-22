@@ -33,11 +33,9 @@
 
   const products = await window.loadProducts(client);
   window.PRODUCTS = products;
-  PRODUCTS = products;
 
   const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
   window.CURRENT_USER = currentUser;
-  CURRENT_USER = currentUser;
 
   // sync cart to Store BEFORE mount so badge correct on initial layout render
   await window.syncStoreFromDB(client, user.id);
@@ -109,7 +107,7 @@
 
   // use shared
   function productCardHtml(p) {
-    const currentQty = Store.getCart()[p.id] || 0;
+    const currentQty = window.Store.getCart()[p.id] || 0;
     return window.renderProductCard(p, currentQty);
   }
 
@@ -213,7 +211,7 @@
   render();
   } catch (e) {
     console.error('Catalog load error', e);
-    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading catalog. <a href="index.html">Go to login</a></div>';
+    document.body.innerHTML = `<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading catalog: ${e && e.message ? e.message : e}. <a href="index.html">Go to login</a></div>`;
   }
 })();
 </script>

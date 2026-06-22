@@ -31,7 +31,6 @@
 
   const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
   window.CURRENT_USER = currentUser;
-  CURRENT_USER = currentUser;
 
   mountLayout({ active: 'cart', pageTitleMini: 'Корзина' });
 
@@ -270,7 +269,7 @@
   render();
   } catch (e) {
     console.error('Cart load error', e);
-    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading cart. <a href="index.html">Go to login</a></div>';
+    document.body.innerHTML = `<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading cart: ${e && e.message ? e.message : e}. <a href="index.html">Go to login</a></div>`;
   }
 })();
 </script>

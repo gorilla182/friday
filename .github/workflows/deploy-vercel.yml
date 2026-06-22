@@ -44,9 +44,9 @@ jobs:
       - name: Deploy Preview to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || '' }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
+          # Deploy from root; vercel.json has outputDirectory: "site" so site/ contents become the root
+          # For PR previews we don't need to scope to a specific project (no IDs)
           vercel deploy --yes
 
   deploy-production:
@@ -63,7 +63,18 @@ jobs:
       - name: Deploy Production to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || '' }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
+          # Deploy from root; vercel.json has outputDirectory: "site"
+          # Only set the scoped IDs if BOTH are provided.
+          if [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            export VERCEL_ORG_ID="${{ secrets.VERCEL_ORG_ID }}"
+            export VERCEL_PROJECT_ID="${{ secrets.VERCEL_PROJECT_ID }}"
+          elif [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "::error::VERCEL_PROJECT_ID is set, but VERCEL_ORG_ID is missing."
+            echo "You need both to target a specific project."
+            echo "On Hobby: use 'vercel link' locally to get orgId from .vercel/project.json as VERCEL_ORG_ID"
+            exit 1
+          fi
+
           vercel deploy --prod --yes
+

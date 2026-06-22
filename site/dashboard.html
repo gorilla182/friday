@@ -32,11 +32,9 @@
 
   const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
   window.CURRENT_USER = currentUser;
-  CURRENT_USER = currentUser;
 
   const products = await window.loadProducts(client);
   window.PRODUCTS = products;
-  PRODUCTS = products;
 
   // Load cart data early for stats and to decide button vs stepper
   const cartData = await window.loadCart(client, user.id);
@@ -110,7 +108,7 @@
   // render featured using shared renderer (respects current cart state from early load)
   const grid = document.getElementById('dashboard-product-grid');
   const featured = products.slice(0, 6);
-  const currentCart = Store.getCart();
+  const currentCart = window.Store.getCart();
   grid.innerHTML = featured.map(p => window.renderProductCard(p, currentCart[p.id] || 0)).join('');
 
   // helper to refresh cart stats widgets (used by handlers + can call post checkout etc)
@@ -134,7 +132,7 @@
   window.attachProductGridHandlers(grid, client, user, products, updateCartStats);
   } catch (e) {
     console.error('Dashboard load error', e);
-    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading dashboard. <a href="index.html">Go to login</a></div>';
+    document.body.innerHTML = `<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading dashboard: ${e && e.message ? e.message : e}. <a href="index.html">Go to login</a></div>`;
   }
 })();
 </script>

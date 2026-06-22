@@ -29,7 +29,6 @@
 
     const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
     window.CURRENT_USER = currentUser;
-    CURRENT_USER = currentUser;
 
     await window.syncStoreFromDB(client, user.id);
     mountLayout({ active: 'catalog', pageTitleMini: 'Товар' });
@@ -116,7 +115,7 @@
     };
   } catch (e) {
     console.error('Item detail error', e);
-    document.body.innerHTML = '<div data-testid="error-state">Error loading item. <a href="dashboard.html">Back</a></div>';
+    document.body.innerHTML = `<div data-testid="error-state">Error loading item: ${e && e.message ? e.message : e}. <a href="dashboard.html">Back</a></div>`;
   }
 })();
 </script>
