@@ -72,6 +72,10 @@ Vercel даёт быстрые деплои, preview-ссылки на кажд�
 
    Скопируй `orgId` как `VERCEL_ORG_ID` и `projectId` как `VERCEL_PROJECT_ID`.
 
+   Для этого проекта (уже определено):
+   - `VERCEL_ORG_ID` = `team_rv8vy3ZKfmInIb7mkT3Pe0D0`
+   - `VERCEL_PROJECT_ID` = `prj_8tPXQ48eT5jQgn7waSM6rFNAw1yi`
+
 2. В GitHub репозитории перейди в:
    **Settings → Secrets and variables → Actions**
 
@@ -113,7 +117,7 @@ GitHub имеет два места для хранения значений:
 
 Обязательно получи его через `vercel link` (см. инструкцию выше) и добавь в секреты.
 
-**Важно:** Не передавай `--token` в команде. CLI берёт его из переменной окружения.
+**Важно:** В GitHub Action мы передаём `--token "$VERCEL_TOKEN"` явно — это надёжнее в CI. Локально CLI обычно берёт токен из окружения (`VERCEL_TOKEN`) или из `vercel login`.
 
 ### Как это работает
 
