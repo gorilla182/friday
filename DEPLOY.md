@@ -8,44 +8,83 @@
 
 Vercel даёт быстрые деплои, preview-ссылки на каждую ветку/PR, отличный CDN и удобный DX.
 
-### Ручной деплой через Dashboard Vercel
+### Как импортировать проект из GitHub (рекомендуемый способ)
 
-1. Запушьте репозиторий в GitHub.
-2. Перейдите на [vercel.com](https://vercel.com) → **Add New Project** → импортируйте репозиторий.
-3. Vercel автоматически подхватит настройки из `vercel.json`.
+1. Убедитесь, что ваш код находится в GitHub-репозитории (например `https://github.com/ваш-юзер/friday`).
+2. Перейдите на сайт [https://vercel.com](https://vercel.com) и войдите через GitHub.
+3. На главной странице нажмите большую кнопку **Add New Project**.
+4. В разделе **Import Git Repository** найдите ваш репозиторий и нажмите **Import**.
+5. На странице настройки деплоя:
+   - Vercel автоматически определит `vercel.json` и подставит правильные значения:
+     - **Framework Preset**: `Other`
+     - **Build Command**: (пусто)
+     - **Output Directory**: `site`
+     - **Install Command**: (пусто)
+   - Если что-то не подставилось, укажите вручную как выше.
+6. Нажмите **Deploy**.
 
-   При необходимости укажите вручную:
-   - **Framework Preset**: `Other`
-   - **Build Command**: (оставьте пустым)
+Готово! Через 30–60 секунд сайт будет доступен по адресу вида:
+`https://friday-ваш-юзер.vercel.app`
+
+### Как создать новый проект на Vercel (без импорта из GitHub)
+
+Этот способ используется реже, но полезен для теста:
+
+1. Зайдите на [https://vercel.com](https://vercel.com) → **Add New Project**.
+2. Выберите **Upload** (вместо импорта репозитория).
+3. Перетащите всю папку `friday` (или только папку `site`, если хотите).
+4. После загрузки перейдите в настройки проекта и укажите:
    - **Output Directory**: `site`
-   - **Install Command**: (оставьте пустым)
+   - **Build Command**: (оставьте пустым)
+5. Нажмите **Deploy**.
 
-4. Нажмите **Deploy**.
+**Важно**: При использовании Upload не будет автоматического деплоя при пушах в Git. Поэтому рекомендуется всегда импортировать проект из GitHub.
 
-Сайт будет доступен по адресу `https://ваш-проект.vercel.app`.
+### После первого деплоя
 
-### Автоматический деплой через GitHub Actions
+1. Откройте полученную ссылку.
+2. Проверьте вход (`alice@example.com` / `password123`).
+3. Протестируйте добавление товаров в корзину, оформление заказа, добавление API Items и отзывы.
 
-В проекте есть workflow `.github/workflows/deploy-vercel.yml` с **отдельными джобами**:
+### Автоматический деплой через GitHub Actions (после импорта проекта)
 
-- `test` — проверяет код, собирает TypeScript, запускает тесты
-- `deploy-preview` — деплой превью (только для Pull Request)
-- `deploy-production` — деплой в продакшн (только на `main`)
+После того как вы импортировали проект на Vercel, вы можете настроить автоматический деплой через GitHub Actions.
 
-**Настройка секретов:**
+1. Получи Org ID и Project ID (даже на бесплатном тарифе Hobby):
 
-1. В проекте Vercel → **Settings → General** скопируйте:
-   - `VERCEL_ORG_ID`
+   **Самый простой способ (рекомендуется):**
+   - Установи Vercel CLI:
+     ```bash
+     npm install -g vercel
+     ```
+   - В папке проекта выполни:
+     ```bash
+     vercel login
+     vercel link
+     ```
+   - Открой файл `.vercel/project.json` — там будут оба ID:
+     ```json
+     {
+       "projectId": "...",
+       "orgId": "..."
+     }
+     ```
+
+   Скопируй `orgId` как `VERCEL_ORG_ID` и `projectId` как `VERCEL_PROJECT_ID`.
+
+2. В GitHub репозитории добавь секреты:
+   - `VERCEL_TOKEN` (создай здесь: https://vercel.com/account/tokens)
+   - `VERCEL_ORG_ID` (можно попробовать без него на Hobby)
    - `VERCEL_PROJECT_ID`
 
-2. В GitHub → **Settings → Secrets and variables → Actions** добавьте:
-   - `VERCEL_TOKEN` (создайте на https://vercel.com/account/tokens)
-   - `VERCEL_ORG_ID`
-   - `VERCEL_PROJECT_ID`
+3. Workflow `.github/workflows/deploy-vercel.yml` запустится автоматически:
+   - Pull Request → Preview
+   - Пуш в main → Production
 
-После этого деплой происходит автоматически:
-- Пуш в `main` → Production
-- Pull Request → Preview (Vercel добавляет комментарий со ссылкой)
+**Примечание для бесплатного тарифа (Hobby):**  
+У тебя есть Org ID (это ID твоего личного аккаунта). Если не получается найти его в дашборде — используй способ с `vercel link` выше. В некоторых случаях на Hobby можно деплоить и без `VERCEL_ORG_ID`, оставив только Token + Project ID.
+
+**Важно:** Не передавай `--token` в команде. CLI берёт его из переменной окружения.
 
 ### Как это работает
 
