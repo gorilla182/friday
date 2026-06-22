@@ -21,12 +21,12 @@ begin
   delete from public.products;
 
   -- Re-seed products
-  insert into public.products (name, description, price) values
-    ('Python Handbook', 'A concise guide to Python programming.', 29.99),
-    ('Playwright in Action', 'End-to-end testing with Playwright.', 39.99),
-    ('API Testing Cookbook', 'Recipes for REST API test automation.', 24.99),
-    ('Test Data Builder', 'Patterns for predictable test fixtures.', 19.99),
-    ('Locators Guide', 'Stable selectors for UI automation.', 14.99);
+  insert into public.products (name, description, price, category) values
+    ('Python Handbook', 'A concise guide to Python programming.', 29.99, 'programming'),
+    ('Playwright in Action', 'End-to-end testing with Playwright.', 39.99, 'testing'),
+    ('API Testing Cookbook', 'Recipes for REST API test automation.', 24.99, 'testing'),
+    ('Test Data Builder', 'Patterns for predictable test fixtures.', 19.99, 'testing'),
+    ('Locators Guide', 'Stable selectors for UI automation.', 14.99, 'testing');
 
   -- Find alice
   select id into alice_id from auth.users where email = 'alice@example.com' limit 1;

@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "outputDirectory": "site",
+  "buildCommand": "",
+  "installCommand": "",
+  "framework": null,
+  "devCommand": "cd site && python -m http.server 8000"
+}

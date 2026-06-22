@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Каталог — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/products.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/catalog.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/supabase-data.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/store.js"></script>
+</head>
+<body data-page="catalog">
+
+<div id="app-root"></div>
+
+<script>
+(async () => {
+  try {
+  const client = window.createSupabaseClient();
+  if (!client) return;
+
+  const user = await window.requireAuth(client);
+  if (!user) return;
+
+  const products = await window.loadProducts(client);
+  window.PRODUCTS = products;
+  PRODUCTS = products;
+
+  const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
+  window.CURRENT_USER = currentUser;
+  CURRENT_USER = currentUser;
+
+  // sync cart to Store BEFORE mount so badge correct on initial layout render
+  await window.syncStoreFromDB(client, user.id);
+
+  mountLayout({ active: 'catalog', pageTitleMini: 'Каталог' });
+
+  const main = document.getElementById('main-content');
+
+  const PAGE_SIZE = 8;
+  let state = { category: 'all', sort: 'default', query: '', page: 1 };
+
+  const categories = ['all', ...new Set(products.map(p => p.category))];
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="page-eyebrow">Каталог</span>
+        <h1 class="page-title" data-testid="page-title">Все товары</h1>
+        <p class="page-sub">Фильтруйте по категории, ищите по названию или артикулу</p>
+      </div>
+    </div>
+
+    <div class="filter-chip-row" data-testid="category-filter-row">
+      ${categories.map(c => `
+        <button class="filter-chip ${c === 'all' ? 'active' : ''}" data-category="${c}" data-testid="category-chip-${c.toLowerCase().replace(/\s+/g,'-')}">
+          ${c === 'all' ? 'Все категории' : c}
+        </button>
+      `).join('')}
+    </div>
+
+    <div class="catalog-toolbar">
+      <select class="select-input" id="sort-select" data-testid="sort-select">
+        <option value="default">Сортировка: по умолчанию</option>
+        <option value="price-asc">Цена: по возрастанию</option>
+        <option value="price-desc">Цена: по убыванию</option>
+        <option value="rating-desc">Рейтинг: сначала высокий</option>
+        <option value="name-asc">Название: А-Я</option>
+        <option value="name-desc">Название: Я-А</option>
+      </select>
+      <label class="checkbox-row" style="margin-left:4px">
+        <input type="checkbox" id="in-stock-only" data-testid="in-stock-only-checkbox">
+        Только в наличии
+      </label>
+      <span class="results-count" data-testid="results-count"></span>
+    </div>
+
+    <div class="product-grid" id="catalog-grid" data-testid="catalog-product-grid"></div>
+    <div class="pagination" id="pagination" data-testid="pagination"></div>
+  `;
+
+  function getFiltered() {
+    let list = [...products];
+    if (state.category !== 'all') list = list.filter(p => p.category === state.category);
+    if (state.query) {
+      list = list.filter(p => p.name.toLowerCase().includes(state.query) || String(p.id).toLowerCase().includes(state.query));
+    }
+    if (document.getElementById('in-stock-only') && document.getElementById('in-stock-only').checked) {
+      list = list.filter(p => p.stock > 0);
+    }
+    switch (state.sort) {
+      case 'price-asc': list.sort((a, b) => a.price - b.price); break;
+      case 'price-desc': list.sort((a, b) => b.price - a.price); break;
+      case 'rating-desc': list.sort((a, b) => b.rating - a.rating); break;
+      case 'name-asc': list.sort((a, b) => a.name.localeCompare(b.name)); break;
+      case 'name-desc': list.sort((a, b) => b.name.localeCompare(a.name)); break;
+    }
+    return list;
+  }
+
+  // use shared
+  function productCardHtml(p) {
+    const currentQty = Store.getCart()[p.id] || 0;
+    return window.renderProductCard(p, currentQty);
+  }
+
+  function render() {
+    const filtered = getFiltered();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    state.page = Math.min(state.page, totalPages);
+    const pageItems = filtered.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
+
+    document.querySelector('[data-testid="results-count"]').innerHTML = `Найдено: <strong data-testid="results-count-value">${filtered.length}</strong>`;
+
+    const grid = document.getElementById('catalog-grid');
+    grid.setAttribute('data-state', filtered.length ? 'loaded' : 'empty');
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `
+        <div class="state-block" data-testid="catalog-empty-state" style="grid-column:1/-1">
+          <div class="state-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+          <div class="state-title">Ничего не найдено</div>
+          <div class="state-desc">Попробуйте изменить запрос или сбросить фильтры.</div>
+          <button class="btn btn-secondary btn-sm" data-testid="reset-filters-button" style="margin-top:8px">Сбросить фильтры</button>
+        </div>
+      `;
+      const reset = document.querySelector('[data-testid="reset-filters-button"]');
+      if (reset) reset.addEventListener('click', resetFilters);
+    } else {
+      grid.innerHTML = pageItems.map(p => productCardHtml(p)).join('');
+    }
+
+    renderPagination(totalPages);
+    attachHandlers(grid);
+  }
+
+  function renderPagination(totalPages) {
+    const el = document.getElementById('pagination');
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+    let html = `<button class="page-btn" data-page="${state.page - 1}" data-testid="pagination-prev" ${state.page === 1 ? 'disabled' : ''}>‹</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="page-btn ${i === state.page ? 'active' : ''}" data-page="${i}" data-testid="pagination-page-${i}">${i}</button>`;
+    }
+    html += `<button class="page-btn" data-page="${state.page + 1}" data-testid="pagination-next" ${state.page === totalPages ? 'disabled' : ''}>›</button>`;
+    el.innerHTML = html;
+    el.querySelectorAll('.page-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = parseInt(btn.getAttribute('data-page'));
+        if (p < 1 || p > totalPages) return;
+        state.page = p;
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  function attachHandlers(grid) {
+    // use shared for cart actions on grid
+    window.attachProductGridHandlers(grid, client, user, window.PRODUCTS);
+
+    const globalSearch = document.querySelector('[data-testid="global-search-input"]');
+    if (globalSearch) globalSearch.addEventListener('input', () => {
+      state.query = globalSearch.value.trim().toLowerCase();
+      state.page = 1;
+      render();
+    });
+
+    document.querySelectorAll('[data-category]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('[data-category]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        state.category = chip.getAttribute('data-category');
+        state.page = 1;
+        render();
+      });
+    });
+
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) sortSelect.addEventListener('change', () => {
+      state.sort = sortSelect.value;
+      render();
+    });
+
+    const inStockCb = document.getElementById('in-stock-only');
+    if (inStockCb) inStockCb.addEventListener('change', () => {
+      state.page = 1;
+      render();
+    });
+  }
+
+  function resetFilters() {
+    state = { category: 'all', sort: 'default', query: '', page: 1 };
+    document.getElementById('sort-select').value = 'default';
+    if (document.getElementById('in-stock-only')) document.getElementById('in-stock-only').checked = false;
+    document.querySelector('[data-testid="global-search-input"]').value = '';
+    document.querySelectorAll('[data-category]').forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-category="all"]').classList.add('active');
+    render();
+  }
+
+  // initial render (Store already synced pre-mount)
+  render();
+  } catch (e) {
+    console.error('Catalog load error', e);
+    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading catalog. <a href="index.html">Go to login</a></div>';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,86 +1,198 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teststand</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/header.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вход — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 1px);
+    background-size: 28px 28px;
+    padding: var(--sp-5);
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 400px;
+    padding: var(--sp-7) var(--sp-6);
+    box-shadow: var(--shadow-md);
+  }
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    justify-content: center;
+    margin-bottom: var(--sp-6);
+  }
+  .auth-brand .brand-mark {
+    width: 30px; height: 30px; border-radius: var(--radius-sm);
+    background: var(--ink); position: relative;
+  }
+  .auth-brand .brand-mark::before,.auth-brand .brand-mark::after{content:'';position:absolute;background:var(--accent);}
+  .auth-brand .brand-mark::before{top:6px;left:6px;width:6px;height:6px;}
+  .auth-brand .brand-mark::after{bottom:6px;right:6px;width:6px;height:6px;}
+  .auth-brand-name { font-family: var(--font-display); font-size: var(--text-md); font-weight: 700; }
+  .auth-brand-name span { color: var(--accent); }
+  .auth-heading { text-align: center; margin-bottom: var(--sp-6); }
+  .auth-heading h1 { font-size: var(--text-lg); margin-bottom: 6px; }
+  .auth-heading p { color: var(--ink-soft); font-size: var(--text-sm); }
+  .auth-form { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .auth-row-between { display: flex; align-items: center; justify-content: space-between; }
+  .auth-link { color: var(--accent); font-size: var(--text-sm); font-weight: 600; }
+  .auth-link:hover { text-decoration: underline; }
+  .auth-foot { text-align: center; margin-top: var(--sp-5); font-size: var(--text-sm); color: var(--ink-soft); }
+  .auth-divider {
+    display: flex; align-items: center; gap: var(--sp-3);
+    color: var(--ink-faint); font-size: var(--text-xs); margin: var(--sp-2) 0;
+  }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .demo-hint {
+    background: var(--accent-soft);
+    border-radius: var(--radius-md);
+    padding: var(--sp-3) var(--sp-4);
+    font-size: var(--text-xs);
+    color: var(--accent);
+    margin-bottom: var(--sp-5);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+  }
+  .auth-alert {
+    display: none;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: var(--radius-md);
+    padding: var(--sp-3) var(--sp-4);
+    font-size: var(--text-sm);
+    margin-bottom: var(--sp-4);
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+  .auth-alert.is-visible { display: flex; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
 </head>
 <body>
-  <!-- Header injected by js/header.js for consistency -->
 
-  <main class="container">
-    <section data-testid="login-page">
-      <h1 data-testid="login-heading">Log in</h1>
-      
-      <form id="login-form" data-testid="login-form">
-        <div>
-          <label for="email">Email</label>
-          <input type="email" id="email" value="alice@example.com" data-testid="login-email" required>
-        </div>
-        <div>
-          <label for="password">Password</label>
-          <input type="password" id="password" value="password123" data-testid="login-password" required>
-        </div>
-        
-        <button type="submit" data-testid="login-submit">Log in</button>
-      </form>
+<div class="card auth-card" data-testid="login-card">
+  <div class="auth-brand">
+    <div class="brand-mark"></div>
+    <span class="auth-brand-name">QA<span>Store</span></span>
+  </div>
 
-      <p style="margin-top: 1rem;">
-        Don't have an account? <a href="register.html" data-testid="register-link">Register</a>
-      </p>
+  <div class="auth-heading">
+    <h1>Вход в аккаунт</h1>
+    <p>Тестовый стенд для практики автоматизации</p>
+  </div>
 
-      <div id="error-message" class="error-message" data-testid="error-message" style="display:none;"></div>
-    </section>
-  </main>
+  <div class="demo-hint" data-testid="demo-credentials-hint">
+    login: alice@example.com<br>password: password123
+  </div>
 
-  <footer class="footer" data-testid="site-footer">
-    <div class="container">
-      <p>Teststand — training app for automated testing</p>
+  <div class="auth-alert" data-testid="login-error-alert" role="alert">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>
+    <span data-testid="login-error-text">Неверный email или пароль</span>
+  </div>
+
+  <form class="auth-form" id="login-form" data-testid="login-form" novalidate>
+    <div class="field">
+      <label class="field-label" for="email">Email</label>
+      <input class="field-input" type="email" id="email" name="email" placeholder="you@example.com" data-testid="login-email-input" autocomplete="username" required>
+      <span class="field-error" id="email-error" data-testid="login-email-error" style="display:none">Введите корректный email</span>
     </div>
-  </footer>
 
-  <script>
-    const client = window.createSupabaseClient();
-    const form = document.getElementById('login-form');
-    const submitBtn = form.querySelector('button[type="submit"]');
+    <div class="field">
+      <div class="auth-row-between">
+        <label class="field-label" for="password">Пароль</label>
+        <a href="#" class="auth-link" style="font-size:12px" data-testid="forgot-password-link">Забыли пароль?</a>
+      </div>
+      <input class="field-input" type="password" id="password" name="password" placeholder="••••••••" data-testid="login-password-input" autocomplete="current-password" required minlength="6">
+      <span class="field-error" id="password-error" data-testid="login-password-error" style="display:none">Минимум 6 символов</span>
+    </div>
 
+    <button type="submit" class="btn btn-accent btn-block" id="login-submit" data-testid="login-submit-button">
+      <span class="btn-label">Войти</span>
+    </button>
+  </form>
+
+  <div class="auth-foot">
+    Нет аккаунта? <a href="register.html" class="auth-link" data-testid="go-to-register-link">Зарегистрироваться</a>
+  </div>
+</div>
+
+<script>
+  const client = window.createSupabaseClient();
+  if (!client) {
+    const alertBox = document.querySelector('[data-testid="login-error-alert"]');
+    const errorText = document.querySelector('[data-testid="login-error-text"]');
+    if (errorText && alertBox) {
+      errorText.textContent = 'Supabase client not available. Check scripts.';
+      alertBox.style.display = 'flex';
+    }
+  }
+
+  const form = document.getElementById('login-form');
+  const submitBtn = document.getElementById('login-submit');
+  const alertBox = document.querySelector('[data-testid="login-error-alert"]');
+  const errorText = document.querySelector('[data-testid="login-error-text"]');
+
+  if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (alertBox) alertBox.style.display = 'none';
 
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      window.hideError();
-
-      window.setLoading(submitBtn, true, 'Log in');
+      window.setLoading(submitBtn, true, 'Войти');
 
       try {
-        const { error } = await client.auth.signInWithPassword({ email, password });
+        const { error } = await client.auth.signInWithPassword({
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value
+        });
 
         window.setLoading(submitBtn, false);
 
         if (error) {
-          window.showError(error.message || 'Invalid email or password.');
+          if (errorText && alertBox) {
+            errorText.textContent = error.message || 'Неверный email или пароль';
+            alertBox.style.display = 'flex';
+          } else {
+            window.showError(error.message || 'Неверный email или пароль');
+          }
           return;
         }
 
         window.location.href = 'dashboard.html';
-      } catch (err) {
+      } catch (e) {
         window.setLoading(submitBtn, false);
-        window.showError('Login failed: ' + (err.message || err));
+        console.error('Login error', e);
+        if (errorText && alertBox) {
+          errorText.textContent = 'Error: ' + e.message;
+          alertBox.style.display = 'flex';
+        } else {
+          window.showError('Error: ' + e.message);
+        }
       }
     });
+  }
 
-    // Auto-redirect if already logged in
-    (async () => {
+  (async () => {
+    try {
       const { data: { user } } = await client.auth.getUser();
-      if (user) {
-        window.location.href = 'dashboard.html';
-      }
-    })();
-  </script>
+      if (user) window.location.href = 'dashboard.html';
+    } catch (e) {
+      console.error('Auto redirect check error', e);
+    }
+  })();
+</script>
 </body>
 </html>

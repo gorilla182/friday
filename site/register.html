@@ -1,94 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register — Teststand</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/header.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Регистрация — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+  body { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); background-image: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 1px); background-size:28px 28px; padding:var(--sp-5); }
+  .auth-card { width:100%; max-width:400px; padding:var(--sp-7) var(--sp-6); box-shadow:var(--shadow-md); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
 </head>
 <body>
-  <!-- Header injected by js/header.js -->
-
-  <main class="container">
-    <section data-testid="register-page">
-      <h1 data-testid="register-heading">Create account</h1>
-      
-      <form id="register-form" data-testid="register-form">
-        <div>
-          <label for="name">Name</label>
-          <input type="text" id="name" value="Test User" data-testid="register-name" required>
-        </div>
-        <div>
-          <label for="email">Email</label>
-          <input type="email" id="email" value="newuser@example.com" data-testid="register-email" required>
-        </div>
-        <div>
-          <label for="password">Password</label>
-          <input type="password" id="password" value="password123" data-testid="register-password" required minlength="6">
-        </div>
-        <div>
-          <label for="password_confirm">Confirm password</label>
-          <input type="password" id="password_confirm" value="password123" data-testid="register-password-confirm" required>
-        </div>
-
-        <button type="submit" data-testid="register-submit">Register</button>
-      </form>
-
-      <p style="margin-top: 1rem;">
-        Already have an account? <a href="index.html" data-testid="login-link">Log in</a>
-      </p>
-
-      <div id="error-message" class="error-message" data-testid="error-message" style="display:none;"></div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script src="js/header.js"></script>
-  <script>
-    const client = window.createSupabaseClient();
-
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const passwordConfirm = document.getElementById('password_confirm').value;
-      const errorEl = document.getElementById('error-message');
-
-      errorEl.style.display = 'none';
-
-      if (password !== passwordConfirm) {
-        window.showError('Passwords do not match.');
-        return;
-      }
-
-      if (password.length < 6) {
-        window.showError('Password must be at least 6 characters.');
-        return;
-      }
-
-      const { data, error } = await client.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name }
-        }
+<div class="card auth-card" data-testid="register-card">
+  <div class="auth-brand">
+    <div class="brand-mark"></div>
+    <span class="auth-brand-name">QA<span>Store</span></span>
+  </div>
+  <div class="auth-heading">
+    <h1>Регистрация</h1>
+  </div>
+  <form class="auth-form" id="register-form" data-testid="register-form">
+    <div class="field">
+      <label class="field-label">Имя</label>
+      <input class="field-input" id="name" data-testid="register-name-input" required>
+    </div>
+    <div class="field">
+      <label class="field-label">Email</label>
+      <input class="field-input" type="email" id="email" data-testid="register-email-input" required>
+    </div>
+    <div class="field">
+      <label class="field-label">Пароль</label>
+      <input class="field-input" type="password" id="password" data-testid="register-password-input" minlength="6" required>
+    </div>
+    <button type="submit" class="btn btn-accent btn-block" data-testid="register-submit-button">Зарегистрироваться</button>
+  </form>
+  <div class="auth-foot">
+    Уже есть аккаунт? <a href="index.html" class="auth-link" data-testid="go-to-login-link">Войти</a>
+  </div>
+</div>
+<script>
+  const client = window.createSupabaseClient();
+  const form = document.getElementById('register-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const name = document.getElementById('name').value;
+      const { error } = await client.auth.signUp({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        options: { data: { name } }
       });
-
       if (error) {
-        window.showError(error.message);
-        return;
+        alert(error.message);
+      } else {
+        alert('Регистрация успешна. Проверьте почту если требуется.');
+        window.location.href = 'index.html';
       }
-
-      // In Supabase, email confirmation may be required by default.
-      // For the teststand we can disable email confirmation in dashboard settings.
-      alert('Registration successful! Please check your email or log in (if confirmation is disabled).');
-      window.location.href = 'index.html';
-    });
-  </script>
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  });
+</script>
 </body>
 </html>

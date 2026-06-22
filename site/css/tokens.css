@@ -1,0 +1,135 @@
+/* ===== QA STORE — DESIGN TOKENS =====
+   Тестовый интернет-магазин для практики Playwright/requests.
+   Минимализм + инженерная эстетика "тестового стенда".
+*/
+
+:root {
+  /* Color */
+  --bg: #FAFAF8;
+  --surface: #FFFFFF;
+  --surface-sunken: #F2F1EC;
+  --ink: #13151A;
+  --ink-soft: #5C5F66;
+  --ink-faint: #9A9DA3;
+  --border: #E5E4DD;
+  --border-strong: #D2D0C6;
+
+  --accent: #5B5FEF;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #EDEDFD;
+
+  --success: #2E7D5B;
+  --success-soft: #E7F3EC;
+  --warning: #B45309;
+  --warning-soft: #FCEFE0;
+  --danger: #C2410C;
+  --danger-soft: #FDECE3;
+
+  --focus-ring: #5B5FEF;
+
+  /* Type */
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.875rem;
+  --text-2xl: 2.5rem;
+
+  /* Space */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* Misc */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(19, 21, 26, 0.06);
+  --shadow-md: 0 4px 16px rgba(19, 21, 26, 0.08);
+  --shadow-lg: 0 12px 32px rgba(19, 21, 26, 0.12);
+  --sidebar-w: 248px;
+  --header-h: 64px;
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+ul { margin: 0; padding: 0; list-style: none; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: inherit; }
+
+img { max-width: 100%; display: block; }
+
+/* Focus visibility — accessibility floor */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ===== Mono "test hook" tag — signature element =====
+   Видимые id-плашки на карточках товаров: честно показывают,
+   что это тестовый стенд, а не маскируются под "обычный" магазин. */
+.test-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: all;
+}
+.test-tag::before {
+  content: '#';
+  opacity: 0.5;
+}
+
+.corner-coord {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--border-strong);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.corner-coord.tl { top: 6px; left: 8px; }
+.corner-coord.br { bottom: 6px; right: 8px; }

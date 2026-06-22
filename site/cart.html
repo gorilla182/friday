@@ -1,132 +1,278 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cart — Teststand</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/header.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Корзина — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/cart.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/supabase-data.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/store.js"></script>
 </head>
-<body>
-  <!-- Header injected by js/header.js -->
+<body data-page="cart">
 
-  <main class="container">
-    <section data-testid="cart-page">
-      <h1 data-testid="cart-heading">Shopping cart</h1>
-      
-      <div id="cart-content" data-testid="cart-table">
-        <!-- Populated by JS -->
+<div id="app-root"></div>
+
+<script>
+(async () => {
+  try {
+  const client = window.createSupabaseClient();
+  if (!client) return;
+
+  const user = await window.requireAuth(client);
+  if (!user) return;
+
+  const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
+  window.CURRENT_USER = currentUser;
+  CURRENT_USER = currentUser;
+
+  mountLayout({ active: 'cart', pageTitleMini: 'Корзина' });
+
+  await window.syncStoreFromDB(client, user.id);
+
+  const main = document.getElementById('main-content');
+
+  const PROMO_CODES = { 'QA10': 0.10, 'TEST20': 0.20 };
+  let appliedPromo = null;
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="page-eyebrow">Заказ</span>
+        <h1 class="page-title" data-testid="page-title">Корзина</h1>
+        <p class="page-sub" data-testid="cart-item-count-sub" id="cart-sub"></p>
       </div>
+    </div>
+    <div id="cart-content" data-testid="cart-content"></div>
+  `;
 
-      <div id="cart-total" style="margin-top: 1rem; font-weight: bold;"></div>
+  async function render() {
+    const items = await window.loadFullCartItems(client, user.id);
+    const content = document.getElementById('cart-content');
+    const subEl = document.getElementById('cart-sub');
 
-      <div style="margin-top: 1.5rem;">
-        <a href="dashboard.html" class="btn btn-secondary">Continue shopping</a>
-        <button id="checkout-btn" class="btn" data-testid="checkout-button" style="margin-left: 1rem;">Proceed to checkout</button>
-      </div>
+    const totals = window.computeCartTotals(items, appliedPromo);
+    if (subEl) subEl.textContent = totals.count ? `${totals.count} товар(ов) на сумму ${window.formatPrice(totals.subtotal)}` : '';
 
-      <div id="error-message" data-testid="error-message" style="display:none; color: red;"></div>
-    </section>
-  </main>
-
-  <script>
-    const client = window.createSupabaseClient();
-
-    async function loadCart() {
-      const user = await window.requireAuth(client);
-      if (!user) return;
-
-      const { data: items, error } = await client
-        .from('cart_items')
-        .select(`
-          id,
-          quantity,
-          product_id,
-          products (id, name, price, description)
-        `)
-        .eq('user_id', user.id);
-
-      const container = document.getElementById('cart-content');
-      const totalEl = document.getElementById('cart-total');
-
-      if (error) {
-        container.innerHTML = `<p>Error loading cart.</p>`;
-        return;
-      }
-
-      if (!items || items.length === 0) {
-        container.innerHTML = `<p data-testid="empty-cart">Your cart is empty.</p>`;
-        totalEl.textContent = '';
-        return;
-      }
-
-      let html = `<table class="cart-table" data-testid="cart-table"><thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr></thead><tbody>`;
-      let total = 0;
-
-      items.forEach(item => {
-        const prod = item.products;
-        const subtotal = prod.price * item.quantity;
-        total += subtotal;
-
-        html += `
-          <tr data-testid="cart-row-${item.id}">
-            <td data-testid="cart-item-name-${item.id}">${prod.name}</td>
-            <td data-testid="cart-item-price-${item.id}">$${prod.price.toFixed(2)}</td>
-            <td>
-              <form class="inline-form" data-testid="cart-update-form-${item.id}">
-                <input type="number" value="${item.quantity}" min="1" data-item-id="${item.id}" data-testid="cart-quantity-${item.id}" style="width:60px">
-                <button type="submit" data-testid="cart-update-submit-${item.id}">Update</button>
-              </form>
-            </td>
-            <td data-testid="cart-subtotal-${item.id}">$${subtotal.toFixed(2)}</td>
-            <td>
-              <form class="inline-form" data-testid="cart-remove-form-${item.id}">
-                <button type="submit" data-testid="cart-remove-submit-${item.id}">Remove</button>
-              </form>
-            </td>
-          </tr>
-        `;
-      });
-
-      html += `</tbody></table>`;
-      container.innerHTML = html;
-      totalEl.innerHTML = `Total: $${total.toFixed(2)}`;
-
-      // Attach update listeners
-      container.querySelectorAll('form[data-testid^="cart-update-form"]').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const input = form.querySelector('input');
-          const itemId = input.dataset.itemId;
-          const newQty = parseInt(input.value);
-
-          await client.from('cart_items').update({ quantity: newQty }).eq('id', itemId);
-          loadCart();
-        });
-      });
-
-      // Attach remove listeners
-      container.querySelectorAll('form[data-testid^="cart-remove-form"]').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const itemId = form.dataset.testid.split('-').pop(); // rough
-          // Better: find the row
-          const row = form.closest('tr');
-          const id = row.dataset.testid.split('-').pop();
-          await client.from('cart_items').delete().eq('id', id);
-          loadCart();
-        });
-      });
+    if (items.length === 0) {
+      content.innerHTML = `
+        <div class="state-block" data-testid="cart-empty-state" style="margin:0 auto">
+          <div class="state-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+          </div>
+          <div class="state-title">Корзина пуста</div>
+          <div class="state-desc">Добавьте товары из каталога, чтобы оформить заказ.</div>
+          <a href="catalog.html" class="btn btn-primary btn-sm" data-testid="cart-empty-browse-button" style="margin-top:8px">Перейти в каталог</a>
+        </div>
+      `;
+      return;
     }
 
-    // Checkout stub
-    document.getElementById('checkout-btn')?.addEventListener('click', () => {
-      window.location.href = 'checkout.html';
+    const itemsHtml = items.map(item => {
+      const p = item.products || {};
+      const qty = item.quantity;
+      const line = (p.price || 0) * qty;
+      return `
+        <div class="cart-item" data-testid="cart-item" data-product-id="${p.id}" data-cart-id="${item.id}">
+          <div class="cart-item-thumb">${window.productIcon(p.img || 'keyboard', 28)}</div>
+          <div>
+            <div class="cart-item-name" data-testid="cart-item-name">${p.name}</div>
+            <span class="test-tag cart-item-id" data-testid="cart-item-id">${p.id}</span>
+          </div>
+          <div class="qty-stepper cart-item-qty" data-testid="cart-qty-stepper" style="width:120px">
+            <button data-action="decrement" data-product-id="${p.id}" data-cart-id="${item.id}" data-testid="cart-qty-decrement" aria-label="Уменьшить">−</button>
+            <span class="qty-value" data-testid="cart-qty-value">${qty}</span>
+            <button data-action="increment" data-product-id="${p.id}" data-cart-id="${item.id}" data-testid="cart-qty-increment" aria-label="Увеличить">+</button>
+          </div>
+          <span class="cart-item-price" data-testid="cart-item-line-total">${window.formatPrice(line)}</span>
+          <button class="cart-item-remove" data-action="remove" data-product-id="${p.id}" data-cart-id="${item.id}" data-testid="cart-item-remove-button" aria-label="Удалить">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6h12z"/></svg>
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    const { subtotal, discount, shipping, total } = window.computeCartTotals(items, appliedPromo);
+
+    content.innerHTML = `
+      <div class="cart-layout">
+        <div>
+          <div class="cart-list" data-testid="cart-items-list">${itemsHtml}</div>
+          <button class="btn btn-ghost" data-testid="clear-cart-button" style="margin-top:16px">Очистить корзину</button>
+        </div>
+
+        <aside class="summary-card" data-testid="cart-summary">
+          <h3 style="margin-bottom:16px;font-size:var(--text-md)">Итого</h3>
+          <div class="summary-row">
+            <span>Подытог</span>
+            <span data-testid="summary-subtotal">${window.formatPrice(subtotal)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Доставка</span>
+            <span data-testid="summary-shipping">${shipping === 0 ? 'Бесплатно' : window.formatPrice(shipping)}</span>
+          </div>
+          ${appliedPromo ? `
+            <div class="summary-row" data-testid="summary-discount-row">
+              <span>Скидка (${appliedPromo.code})</span>
+              <span data-testid="summary-discount">−${window.formatPrice(discount)}</span>
+            </div>
+          ` : ''}
+          <div class="summary-row total">
+            <span>Итого к оплате</span>
+            <span data-testid="summary-total">${window.formatPrice(total)}</span>
+          </div>
+
+          ${appliedPromo ? `
+            <div class="promo-applied is-visible" data-testid="promo-applied-banner">
+              <span data-testid="promo-applied-text">Применён код ${appliedPromo.code}</span>
+              <button data-testid="promo-remove-button">Убрать</button>
+            </div>
+          ` : `
+            <div class="promo-row">
+              <input class="field-input" placeholder="Промокод" id="promo-input" data-testid="promo-input">
+              <button class="btn btn-secondary" data-testid="promo-apply-button">Применить</button>
+            </div>
+            <span class="field-error" id="promo-error" data-testid="promo-error" style="display:none">Промокод не найден</span>
+          `}
+
+          <button class="btn btn-accent btn-block" data-testid="checkout-button" style="margin-top:${appliedPromo ? '0' : '16px'}">
+            Оформить заказ
+          </button>
+        </aside>
+      </div>
+    `;
+
+    attachHandlers(items);
+  }
+
+  function attachHandlers(items) {
+    const content = document.getElementById('cart-content');
+
+    // qty + remove use shared DB helpers + sync Store
+    content.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const pid = btn.dataset.productId;
+        const action = btn.dataset.action;
+        if (action === 'increment') {
+          const item = items.find(i => String(i.product_id) === String(pid) || String(i.products?.id) === String(pid));
+          const newQ = (item ? item.quantity : 0) + 1;
+          await window.setCartQtyDB(client, user.id, pid, newQ);
+          await window.syncStoreFromDB(client, user.id);
+        } else if (action === 'decrement') {
+          const item = items.find(i => String(i.product_id) === String(pid) || String(i.products?.id) === String(pid));
+          const cur = item ? item.quantity : 1;
+          const newQ = Math.max(0, cur - 1); // 0 will delete inside helper
+          await window.setCartQtyDB(client, user.id, pid, newQ);
+          await window.syncStoreFromDB(client, user.id);
+        } else if (action === 'remove') {
+          await window.removeFromCartDB(client, user.id, pid);
+          await window.syncStoreFromDB(client, user.id);
+        }
+        render();
+      });
     });
 
-    loadCart();
-  </script>
+    const clearBtn = content.querySelector('[data-testid="clear-cart-button"]');
+    if (clearBtn) clearBtn.addEventListener('click', async () => {
+      await window.clearCartDB(client, user.id);
+      appliedPromo = null;
+      await window.syncStoreFromDB(client, user.id);
+      render();
+    });
+
+    const promoBtn = content.querySelector('[data-testid="promo-apply-button"]');
+    if (promoBtn) promoBtn.addEventListener('click', () => {
+      const input = document.getElementById('promo-input');
+      const code = input.value.trim().toUpperCase();
+      const errorEl = document.getElementById('promo-error');
+      if (PROMO_CODES[code]) {
+        appliedPromo = { code, rate: PROMO_CODES[code] };
+        errorEl.style.display = 'none';
+        render();
+        if (window.showToast) window.showToast(`Промокод ${code} применён`, 'success');
+      } else {
+        errorEl.style.display = 'flex';
+        input.classList.add('is-error');
+      }
+    });
+
+    const promoRemove = content.querySelector('[data-testid="promo-remove-button"]');
+    if (promoRemove) promoRemove.addEventListener('click', () => { appliedPromo = null; render(); });
+
+    const checkoutBtn = content.querySelector('[data-testid="checkout-button"]');
+    if (checkoutBtn) checkoutBtn.addEventListener('click', async () => {
+      checkoutBtn.disabled = true;
+      checkoutBtn.setAttribute('data-testid', 'checkout-button-loading');
+      checkoutBtn.innerHTML = '<span class="btn-spinner"></span><span>Оформление…</span>';
+      try {
+        // create real order (use latest items)
+        const items = await window.loadFullCartItems(client, user.id);
+        if (items.length === 0) return;
+        const { total: finalTotal } = window.computeCartTotals(items, appliedPromo);
+
+        const orderNumber = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+        const { data: order } = await client.from('orders').insert({
+          user_id: user.id,
+          order_number: orderNumber,
+          total: finalTotal
+        }).select().single();
+
+        if (order) {
+          for (const item of items) {
+            await client.from('order_items').insert({
+              order_id: order.id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              price: (item.products && item.products.price) || 0
+            });
+          }
+          await window.clearCartDB(client, user.id);
+        }
+
+        // show modal
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('data-testid', 'checkout-success-modal-overlay');
+        overlay.innerHTML = `
+          <div class="modal" data-testid="checkout-success-modal">
+            <div class="state-icon" style="background:var(--success-soft);color:var(--success);margin-bottom:16px">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h2 class="modal-title">Заказ оформлен</h2>
+            <p class="modal-desc">Номер заказа <span class="test-tag" data-testid="order-number">${orderNumber}</span>. Подтверждение отправлено на ${currentUser.email}.</p>
+            <div class="modal-actions">
+              <a href="catalog.html" class="btn btn-secondary" data-testid="modal-continue-shopping-button">В каталог</a>
+              <a href="dashboard.html" class="btn btn-primary" data-testid="modal-go-dashboard-button">На дашборд</a>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+        appliedPromo = null;
+        await window.syncStoreFromDB(client, user.id);
+      } catch (e) {
+        console.error('Checkout error', e);
+        if (window.showToast) window.showToast('Ошибка оформления: ' + e.message, 'error');
+        else alert('Ошибка оформления: ' + e.message);
+      } finally {
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = 'Оформить заказ';
+      }
+    });
+  }
+
+  render();
+  } catch (e) {
+    console.error('Cart load error', e);
+    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading cart. <a href="index.html">Go to login</a></div>';
+  }
+})();
+</script>
 </body>
 </html>

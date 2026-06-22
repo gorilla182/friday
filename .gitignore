@@ -25,7 +25,4 @@ site/js/*.js.map
 !site/js/app.js  # keep the small log if needed
 
 # Misc
-.DS_Store
 *.log
-site/js/*.js
-site/js/*.js.map

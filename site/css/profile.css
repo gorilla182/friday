@@ -1,0 +1,100 @@
+/* ===== PROFILE ===== */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.profile-avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-lg);
+  font-family: var(--font-display);
+  flex-shrink: 0;
+}
+.profile-info h2 { font-size: var(--text-lg); margin-bottom: 2px; }
+.profile-info .email { color: var(--ink-soft); font-size: var(--text-sm); }
+.profile-meta-row {
+  display: flex;
+  gap: var(--sp-4);
+  margin-top: var(--sp-2);
+  flex-wrap: wrap;
+}
+.profile-meta-item {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-5);
+}
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 12px 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-faint);
+  position: relative;
+  margin-right: var(--sp-5);
+}
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.15s var(--ease);
+}
+.tab-btn.active { color: var(--ink); }
+.tab-btn.active::after { background: var(--ink); }
+.tab-btn:hover { color: var(--ink); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.api-item-status-active { color: var(--success); }
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+.profile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+}
+.profile-card + .profile-card { margin-top: var(--sp-4); }
+.profile-card h3 { font-size: var(--text-base); margin-bottom: var(--sp-4); }
+
+.api-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+@media (max-width: 980px) {
+  .profile-form-grid { grid-template-columns: 1fr; }
+}

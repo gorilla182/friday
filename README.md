@@ -5,7 +5,7 @@
 **Архитектура (2026):**
 - Фронтенд: полностью статический сайт (HTML + vanilla JS + CSS)
 - Бэкенд: Supabase (PostgreSQL + Auth + Row Level Security)
-- Деплой фронтенда: GitHub Pages + GitHub Actions
+- Деплой фронтенда: Vercel (рекомендуется) или GitHub Pages
 - API для тестов: Supabase Edge Functions (реалистичные HTTP эндпоинты)
 
 ## Быстрый старт
@@ -16,7 +16,7 @@
 cd friday
 cd site
 python -m http.server 8000
-# Открой http://localhost:8000
+# Откройте http://localhost:8000
 ```
 
 Тестовые пользователи (созданы в Supabase):
@@ -34,24 +34,37 @@ curl -X POST https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api/admin/res
 
 Или используйте RPC напрямую через Supabase клиент с service role key (только для CI).
 
+### Наполнение каталога (products)
+
+Если каталог пустой — выполните в Supabase SQL Editor содержимое:
+
+1. `supabase/add-categories.sql` (ALTER + UPDATE категорий)
+2. `supabase/seed-products.sql` (INSERT продуктов с категориями)
+
+После этого на `/dashboard.html` появятся товары, поиск, сортировка и чипы категорий будут работать.
+
 ## Структура проекта
 
 ```
 friday/
-├── site/                    # Статический фронтенд (деплоится на GitHub Pages)
+├── site/                    # Статический фронтенд
 │   ├── index.html
 │   ├── dashboard.html
+│   ├── catalog.html
 │   ├── cart.html
-│   ├── ...
-│   ├── js/supabase-client.js
-│   └── style.css
+│   ├── profile.html
+│   ├── item_detail.html
+│   ├── register.html
+│   ├── css/
+│   └── js/
 ├── supabase/
 │   ├── functions/
 │   │   └── api/             # Реалистичный API слой (Edge Functions)
-│   │       └── index.ts
 │   ├── schema.sql
-│   └── reset.sql            # Функция сброса
-├── .github/workflows/       # Деплой на GitHub Pages
+│   ├── reset.sql            # Функция сброса
+│   └── seeds/
+├── vercel.json              # Конфигурация для Vercel (рекомендуется)
+├── .github/workflows/       # GitHub Actions (отдельные джобы для тестов и деплоя)
 └── README.md
 ```
 
@@ -62,30 +75,23 @@ friday/
 Текущий магазин покрывает:
 
 - Регистрация и логин (с автопереходом)
-- Просмотр каталога с **поиском по названию**, **сортировкой** (имя/цена), **фильтром по категории** (новое)
-- Детальная карточка товара + добавление в корзину
-- Корзина: обновление количества, удаление
-- Checkout и оформление заказа
-- Профиль: просмотр, **редактирование имени** (новое), **история заказов** (новое)
-- **Отзывы к товарам** (новое): просмотр и добавление отзывов с рейтингом 1-5
+- Просмотр каталога с **поиском по названию**, **сортировкой** (имя/цена), **фильтром по категории**
+- Детальная карточка товара (`item_detail.html`) + добавление в корзину + **отзывы**
+- Корзина: обновление количества, удаление, применение промокодов
+- Checkout и оформление заказа (создание order + order_items, очистка корзины)
+- Профиль: просмотр, **редактирование имени**, **My API Items** (добавление/удаление), безопасность
+- **Отзывы к товарам**: просмотр и добавление отзывов с рейтингом 1-5
 
-Все интерактивные элементы имеют `data-testid` для стабильных локаторов.
+Все интерактивные элементы имеют `data-testid` для стабильных локаторов (Playwright).
 
-Новые UI "эндпоинты"/потоки:
-- Поиск и фильтрация товаров
-- История заказов
-- Редактирование профиля
-- Добавление и просмотр отзывов на странице товара
-
-Это позволяет покрывать больше сценариев в Playwright тестах.
-
-## API Эндпоинты (для тестов на requests)
+## API Эндпоинты (для тестов на requests / pytest)
 
 Базовый URL:  
 `https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api`
 
 ### Аутентификация
 
+**Регистрация**
 ```http
 POST /auth/register
 Content-Type: application/json
@@ -97,14 +103,19 @@ Content-Type: application/json
 }
 ```
 
+**Логин**
 ```http
 POST /auth/login
+Content-Type: application/json
+
 {
   "email": "alice@example.com",
   "password": "password123"
 }
+```
 
-# Ответ
+Ответ:
+```json
 {
   "access_token": "eyJ...",
   "token_type": "Bearer",
@@ -112,113 +123,91 @@ POST /auth/login
 }
 ```
 
-### Основные эндпоинты
+### Items (API Items — сервис добавления товаров)
 
-**Items (CRUD + пагинация + фильтры)**
-
+**Список с пагинацией и фильтрами**
 ```http
 GET /items?page=1&limit=10&category=testing
 Authorization: Bearer <token>
+```
 
+Ответ содержит `items`, `page`, `limit`, `total`, `total_pages`.
+
+**Создание**
+```http
 POST /items
 Authorization: Bearer <token>
+
 {
   "title": "New task",
-  "description": "...",
+  "description": "Описание",
   "category": "testing"
 }
-
-GET /items/123
-PUT /items/123
-DELETE /items/123
 ```
 
-**Дополнительные (новые для покрытия UI)**
+**CRUD по ID**
+- `GET /items/123`
+- `PUT /items/123` (только владелец)
+- `DELETE /items/123` (только владелец)
 
-```http
-GET /categories
-GET /products
-GET /reviews?product_id=1
-POST /reviews   (auth required)
-{
-  "product_id": 1,
-  "rating": 5,
-  "comment": "Great product!"
-}
-```
+### Другие эндпоинты
 
-**Особенности (как в реальных проектах):**
-- Пагинация с `page`, `limit`, `total`, `total_pages`
-- Фильтрация по `category`
-- Только владелец может обновлять/удалять свои items (403)
-- Валидация (422)
-- Правильные статус-коды (200, 201, 204, 401, 403, 404, 422, 429, 500)
-- Reviews поддержка для UI тестов
+- `GET /categories` — уникальные категории
+- `GET /products` — товары магазина (зеркало для тестов)
+- `GET /reviews?product_id=1` — отзывы
+- `POST /reviews` (auth) — добавить отзыв
+- `DELETE /reviews/:id` (auth, только владелец)
+- `GET /orders` (auth) — заказы пользователя
+- `GET /profile` (auth) — профиль + количество заказов
+- `PUT /profile` (auth) — обновить имя
 
-### Edge-кейсы для практики
+### Edge-кейсы и админ
 
-```http
-POST /items/trigger-error
-{
-  "payload": "server_error"   # → 500
-}
+- `POST /items/trigger-error`
+  ```json
+  { "payload": "server_error" }   // → 500
+  { "payload": "rate_limit" }     // → 429
+  ```
+- `POST /admin/reset` — полный сброс данных (для изоляции тестов)
 
-# Без payload или с другим значением может вернуть 429 (rate limit simulation)
-```
+## GitHub Actions (отдельные джобы)
 
-### Сброс данных
+- **deploy-pages.yml** — `test` → `build` → `deploy`
+- **deploy-vercel.yml** — `test` → `deploy-preview` (PR) / `deploy-production` (main)
 
-```http
-POST /admin/reset
-# Возвращает { "status": "ok", "message": "..." }
-```
+Секреты для Vercel:
+- VERCEL_TOKEN
+- VERCEL_ORG_ID
+- VERCEL_PROJECT_ID
 
 ## Как писать тесты
 
 ### Playwright (UI)
-
-Используйте обычные `page.goto`, `locator('[data-testid="..."]')`.
-
-Все важные элементы помечены `data-testid`.
+Используйте `page.goto`, `locator('[data-testid="..."]')`. Все важные элементы помечены `data-testid`.
 
 ### requests (API)
-
 ```python
 import requests
 
 BASE = "https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api"
 
-# Логин
-r = requests.post(f"{BASE}/auth/login", json={
-    "email": "alice@example.com",
-    "password": "password123"
-})
+r = requests.post(f"{BASE}/auth/login", json={...})
 token = r.json()["access_token"]
 headers = {"Authorization": f"Bearer {token}"}
 
-# Создать item
 r = requests.post(f"{BASE}/items", json={"title": "Test"}, headers=headers)
 ```
 
-### Сброс перед каждым тестом (рекомендуется)
-
+### Сброс перед каждым тестом
 ```python
 requests.post(f"{BASE}/admin/reset")
 ```
 
-## Деплой на GitHub Pages
+## Полезные советы
 
-Смотрите файл `DEPLOY.md`.
+- Используйте `/admin/reset` в `autouse` фикстуре.
+- Тестируйте негативные сценарии (`/items/trigger-error`, 403 на чужие items).
+- Проверяйте пагинацию, фильтры, ownership.
+- Тестируйте отзывы и историю заказов через UI + API.
 
-Workflow деплоит только папку `site/`.
-
-## Полезные советы для практики
-
-- Используйте `/admin/reset` в `autouse` фикстуре pytest.
-- Тестируйте негативные сценарии через `/items/trigger-error`.
-- Проверяйте ownership (403 при попытке изменить чужой item).
-- Тестируйте пагинацию и фильтры.
-
----
-
-Проект специально сделан так, чтобы имитировать поведение реальных веб-приложений, но при этом оставался максимально простым и предсказуемым для написания тестов.
+Проект имитирует поведение реальных веб-приложений, но остаётся простым и предсказуемым для написания стабильных автотестов.

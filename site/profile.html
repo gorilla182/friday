@@ -1,196 +1,337 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile — Teststand</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Профиль — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/profile.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/supabase-data.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/store.js"></script>
 </head>
-<body>
-  <!-- Header injected by js/header.js for consistency -->
+<body data-page="profile">
 
-  <main class="container">
-    <section data-testid="profile-page">
-      <h1 data-testid="profile-heading">Your profile</h1>
+<div id="app-root"></div>
 
-      <dl class="profile-details" data-testid="profile-details">
-        <dt>Name</dt>
-        <dd data-testid="profile-name" id="profile-name"></dd>
-        <dt>Email</dt>
-        <dd data-testid="profile-email" id="profile-email"></dd>
-        <dt>Orders placed</dt>
-        <dd data-testid="profile-order-count" id="profile-order-count"></dd>
-      </dl>
+<script>
+(async () => {
+  try {
+  const client = window.createSupabaseClient();
+  if (!client) return;
 
-      <!-- New: Edit profile -->
-      <div data-testid="edit-profile-section" style="margin: 20px 0;">
-        <h3>Edit Name</h3>
-        <input type="text" id="edit-name" data-testid="edit-name-input" placeholder="New name">
-        <button id="save-name-btn" data-testid="save-name-button">Save</button>
-        <div id="edit-error" data-testid="edit-error" style="color:red; display:none;"></div>
+  const user = await window.requireAuth(client);
+  if (!user) return;
+
+  const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: user.email || '' };
+  window.CURRENT_USER = currentUser;
+  CURRENT_USER = currentUser;
+
+  // ensure badge populated before mount (shared helper)
+  await window.syncStoreFromDB(client, user.id);
+
+  mountLayout({ active: 'profile', pageTitleMini: 'Профиль' });
+
+  const main = document.getElementById('main-content');
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="page-eyebrow">Аккаунт</span>
+        <h1 class="page-title" data-testid="page-title">Профиль</h1>
       </div>
+      <button class="btn btn-danger" data-testid="logout-button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Выйти
+      </button>
+    </div>
 
-      <!-- New: Order history -->
-      <div data-testid="order-history-section">
-        <h3>Your Orders</h3>
-        <div id="orders-list" data-testid="orders-list">
-          <!-- Populated by JS -->
+    <div class="profile-header" data-testid="profile-header">
+      <div class="profile-avatar-lg">${currentUser.initials}</div>
+      <div class="profile-info">
+        <h2 data-testid="profile-name">${currentUser.name}</h2>
+        <div class="email" data-testid="profile-email">${currentUser.email}</div>
+        <div class="profile-meta-row">
+          <span class="profile-meta-item"><span class="test-tag" data-testid="profile-user-id">${currentUser.id}</span></span>
+          <span class="profile-meta-item">Тариф: ${currentUser.plan}</span>
+          <span class="profile-meta-item">С нами с ${currentUser.joined}</span>
         </div>
       </div>
+    </div>
 
-      <!-- New: My Reviews -->
-      <div data-testid="my-reviews-section" style="margin-top: 1.5rem;">
-        <h3>My Reviews</h3>
-        <div id="my-reviews-list" data-testid="my-reviews-list">
-          <!-- Populated by JS -->
-        </div>
+    <div class="tabs" data-testid="profile-tabs">
+      <button class="tab-btn active" data-tab="account" data-testid="tab-account">Аккаунт</button>
+      <button class="tab-btn" data-tab="api-items" data-testid="tab-api-items">My API Items</button>
+      <button class="tab-btn" data-tab="security" data-testid="tab-security">Безопасность</button>
+    </div>
+
+    <div class="tab-panel active" data-panel="account" data-testid="panel-account">
+      <div class="profile-card">
+        <h3>Личные данные</h3>
+        <form data-testid="account-form">
+          <div class="profile-form-grid">
+            <div class="field">
+              <label class="field-label">Имя</label>
+              <input class="field-input" value="${currentUser.name.split(' ')[0] || ''}" data-testid="profile-firstname-input">
+            </div>
+            <div class="field">
+              <label class="field-label">Фамилия</label>
+              <input class="field-input" value="${currentUser.name.split(' ').slice(1).join(' ') || ''}" data-testid="profile-lastname-input">
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px">
+            <label class="field-label">Email</label>
+            <input class="field-input" value="${currentUser.email}" type="email" data-testid="profile-email-input">
+          </div>
+          <button type="submit" class="btn btn-primary" data-testid="save-profile-button" style="margin-top:20px">Сохранить изменения</button>
+        </form>
       </div>
+    </div>
 
-      <button id="logout-btn" class="btn-danger" data-testid="logout-submit">Log out</button>
-    </section>
-  </main>
+    <div class="tab-panel" data-panel="api-items" data-testid="panel-api-items">
+      <div class="profile-card">
+        <div class="api-toolbar">
+          <select class="select-input" id="api-status-filter" data-testid="api-status-filter">
+            <option value="all">Все статусы</option>
+            <option value="active">Активные</option>
+            <option value="out_of_stock">Нет в наличии</option>
+            <option value="archived">Архивные</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" data-testid="refresh-api-items-button" style="margin-left:auto">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v6h-6"/></svg>
+            Обновить
+          </button>
+        </div>
+        <div class="api-add-row" style="display:flex; gap:8px; margin:8px 0; align-items:center; flex-wrap: wrap;">
+          <input class="field-input" placeholder="Название" id="new-api-item-title" data-testid="new-api-item-title-input" style="flex:2; min-width:120px;">
+          <input class="field-input" placeholder="Описание (опц.)" id="new-api-item-desc" data-testid="new-api-item-desc-input" style="flex:3; min-width:140px;">
+          <input class="field-input" type="number" step="0.01" min="0" placeholder="Цена" value="19.99" id="new-api-item-price" data-testid="new-api-item-price-input" style="flex:1; min-width:70px;">
+          <input class="field-input" placeholder="Категория" value="general" id="new-api-item-category" data-testid="new-api-item-category-input" style="flex:1; min-width:90px;">
+          <button class="btn btn-primary btn-sm" data-testid="add-api-item-button">Добавить в каталог</button>
+        </div>
+        <div id="api-items-container" data-testid="api-items-container"></div>
+      </div>
+    </div>
 
-  <script>
-    const client = window.createSupabaseClient();
+    <div class="tab-panel" data-panel="security" data-testid="panel-security">
+      <div class="profile-card">
+        <h3>Смена пароля</h3>
+        <div class="field">
+          <label class="field-label">Текущий пароль</label>
+          <input class="field-input" type="password" data-testid="current-password-input">
+        </div>
+        <div class="field" style="margin-top:16px">
+          <label class="field-label">Новый пароль</label>
+          <input class="field-input" type="password" data-testid="new-password-input">
+        </div>
+        <button class="btn btn-primary" data-testid="change-password-button" style="margin-top:20px">Обновить пароль</button>
+      </div>
+      <div class="profile-card">
+        <h3 style="color:var(--danger)">Опасная зона</h3>
+        <p style="font-size:var(--text-sm);color:var(--ink-soft);margin-bottom:16px">Удаление аккаунта необратимо и удалит все данные, включая историю заказов.</p>
+        <button class="btn btn-danger" data-testid="delete-account-button">Удалить аккаунт</button>
+      </div>
+    </div>
+  `;
 
-    async function loadProfile() {
-      const user = await window.requireAuth(client);
-      if (!user) return;
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.querySelector(`[data-panel="${btn.getAttribute('data-tab')}"]`);
+      if (panel) panel.classList.add('active');
+    });
+  });
 
-      document.getElementById('profile-email').textContent = user.email;
+  if (window.location.hash === '#api-items') {
+    const tab = document.querySelector('[data-testid="tab-api-items"]');
+    if (tab) tab.click();
+  }
 
-      const { data: { user: fresh } } = await client.auth.getUser();
-      document.getElementById('profile-name').textContent = fresh?.user_metadata?.name || '—';
-      document.getElementById('edit-name').value = fresh?.user_metadata?.name || '';
+  // Load API Items
+  const apiContainer = document.getElementById('api-items-container');
+  let apiItems = await window.loadApiItems(client, user.id);
 
-      // Count orders
-      const { count } = await client
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+  function statusBadge(status) {
+    const map = {
+      active: { cls: 'badge-success', text: 'Активен' },
+      out_of_stock: { cls: 'badge-warning', text: 'Нет в наличии' },
+      archived: { cls: 'badge-neutral', text: 'Архив' },
+    };
+    const s = map[status] || map.active;
+    return `<span class="badge ${s.cls}" data-testid="api-item-status-badge" data-status="${status}">${s.text}</span>`;
+  }
 
-      document.getElementById('profile-order-count').textContent = count || 0;
-
-      // Load order history (new)
-      await loadOrderHistory(user.id);
-      await loadMyReviews(user.id);
+  function renderApiItemsTable(items) {
+    if (items.length === 0) {
+      apiContainer.innerHTML = `
+        <div class="state-block" data-testid="api-items-empty-state">
+          <div class="state-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          </div>
+          <div class="state-title">Нет элементов с этим статусом</div>
+          <div class="state-desc">Попробуйте выбрать другой фильтр.</div>
+        </div>
+      `;
+      return;
     }
+    apiContainer.innerHTML = `
+      <table class="table" data-testid="api-items-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Добавлен</th>
+            <th>Цена</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => `
+            <tr data-testid="api-item-row-${item.id}">
+              <td><span class="test-tag" data-testid="api-item-id">${item.id}</span></td>
+              <td data-testid="api-item-name">${item.name}</td>
+              <td>${item.addedAt}</td>
+              <td data-testid="api-item-price">${item.price ? '$' + item.price.toFixed(2) : '-'}</td>
+              <td>${statusBadge(item.status)}</td>
+              <td><button class="btn btn-ghost btn-sm" data-testid="api-item-delete-${item.id}">Удалить</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
 
-    async function loadMyReviews(userId) {
-      const { data: reviews, error } = await client
-        .from('reviews')
-        .select(`
-          id, 
-          rating, 
-          comment, 
-          created_at,
-          products (name)
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(5);
+  const filterSelect = document.getElementById('api-status-filter');
+  function applyApiFilter() {
+    const val = filterSelect ? filterSelect.value : 'all';
+    const filtered = val === 'all' ? apiItems : apiItems.filter(i => i.status === val);
+    renderApiItemsTable(filtered);
+  }
+  if (filterSelect) filterSelect.addEventListener('change', applyApiFilter);
+  applyApiFilter();
 
-      const container = document.getElementById('my-reviews-list');
-      if (!container) return;
-      container.innerHTML = '';
+  // Refresh button
+  const refreshBtn = document.querySelector('[data-testid="refresh-api-items-button"]');
+  if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+    apiItems = await window.loadApiItems(client, user.id);
+    applyApiFilter();
+  });
 
-      if (error || !reviews || reviews.length === 0) {
-        container.innerHTML = '<p data-testid="no-my-reviews">You have not left any reviews yet.</p>';
+  // Add new API item (adds to api_items list + creates product in catalog)
+  const addApiBtn = document.querySelector('[data-testid="add-api-item-button"]');
+  const newTitleInput = document.getElementById('new-api-item-title');
+  const newDescInput = document.getElementById('new-api-item-desc');
+  const newPriceInput = document.getElementById('new-api-item-price');
+  const newCatInput = document.getElementById('new-api-item-category');
+  if (addApiBtn) {
+    addApiBtn.addEventListener('click', async () => {
+      const title = (newTitleInput ? newTitleInput.value : '').trim();
+      if (!title) {
+        if (window.showToast) window.showToast('Введите название', 'error');
         return;
       }
+      const desc = (newDescInput ? newDescInput.value : '').trim();
+      const price = parseFloat(newPriceInput ? newPriceInput.value : '19.99') || 19.99;
+      const category = (newCatInput ? newCatInput.value : 'general').trim() || 'general';
 
-      reviews.forEach((r) => {
-        const div = document.createElement('div');
-        div.className = 'review-item';
-        div.setAttribute('data-testid', `my-review-${r.id}`);
-        div.innerHTML = `
-          <strong>${r.products?.name || 'Unknown product'}</strong> — ${r.rating}/5
-          <p>${r.comment || '(no comment)'}</p>
-          <small>${new Date(r.created_at).toLocaleDateString()}</small>
-        `;
-        container.appendChild(div);
-      });
-    }
+      try {
+        // 1. Add to user's API Items list (for /api/items practice) — with category
+        const apiOk = await window.addApiItemDB(client, user.id, title, desc, category);
+        if (!apiOk) {
+          if (window.showToast) window.showToast('Ошибка добавления в API Items', 'error');
+          return;
+        }
 
-    async function loadOrderHistory(userId) {
-      const { data: orders, error } = await client
-        .from('orders')
-        .select(`
-          id, 
-          order_number, 
-          total, 
-          created_at,
-          order_items (
-            quantity, 
-            price,
-            products (name)
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        // 2. Add the item as a product to the public catalog (so it appears in dashboard/catalog)
+        const prodOk = await window.addProductDB(client, title, desc, price, category);
 
-      const container = document.getElementById('orders-list');
-      container.innerHTML = '';
-
-      if (error || !orders || orders.length === 0) {
-        container.innerHTML = '<p data-testid="no-orders">No orders yet.</p>';
-        return;
-      }
-
-      orders.forEach(order => {
-        const div = document.createElement('div');
-        div.className = 'order-item';
-        div.setAttribute('data-testid', `order-${order.id}`);
-
-        let itemsHtml = '<ul>';
-        order.order_items.forEach(item => {
-          itemsHtml += `<li>${item.products?.name} x${item.quantity} — $${item.price}</li>`;
-        });
-        itemsHtml += '</ul>';
-
-        div.innerHTML = `
-          <strong data-testid="order-number-${order.id}">${order.order_number}</strong>
-          <span> — $${order.total} on ${new Date(order.created_at).toLocaleDateString()}</span>
-          ${itemsHtml}
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    // New: Edit name
-    document.getElementById('save-name-btn')?.addEventListener('click', async () => {
-      const newName = document.getElementById('edit-name').value.trim();
-      const errorEl = document.getElementById('edit-error');
-      errorEl.style.display = 'none';
-
-      if (!newName) {
-        errorEl.textContent = 'Name cannot be empty';
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      const { error } = await client.auth.updateUser({
-        data: { name: newName }
-      });
-
-      if (error) {
-        errorEl.textContent = error.message;
-        errorEl.style.display = 'block';
-      } else {
-        document.getElementById('profile-name').textContent = newName;
-        alert('Name updated!');
+        if (!prodOk) {
+          console.error('add product failed (check RLS policy on products)');
+          // still keep the api_item, but warn
+          if (window.showToast) window.showToast('Добавлено в API Items, но не в каталог (проверь RLS)', 'error');
+        } else {
+          apiItems = await window.loadApiItems(client, user.id);
+          applyApiFilter();
+          if (newTitleInput) newTitleInput.value = '';
+          if (newDescInput) newDescInput.value = '';
+          if (newPriceInput) newPriceInput.value = '19.99';
+          if (newCatInput) newCatInput.value = 'general';
+          if (window.showToast) window.showToast('Товар добавлен в каталог!', 'success');
+        }
+      } catch (err) {
+        console.error('add api item / product', err);
+        if (window.showToast) window.showToast('Ошибка добавления', 'error');
       }
     });
+  }
 
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await client.auth.signOut();
-      window.location.href = 'index.html';
-    });
+  // Delete handlers (delegation, survives re-renders)
+  apiContainer.addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('button[data-testid^="api-item-delete-"]');
+    if (!delBtn) return;
+    const testid = delBtn.getAttribute('data-testid') || '';
+    const id = parseInt(testid.replace('api-item-delete-', ''));
+    if (!id || isNaN(id)) return;
+    if (!confirm('Удалить этот API item?')) return;
+    const ok = await window.deleteApiItemDB(client, id);
+    if (ok) {
+      apiItems = await window.loadApiItems(client, user.id);
+      applyApiFilter();
+      if (window.showToast) window.showToast('API Item удалён', 'default');
+    } else {
+      if (window.showToast) window.showToast('Ошибка удаления', 'error');
+    }
+  });
 
-    loadProfile();
-  </script>
+  // Logout
+  const logoutBtn = document.querySelector('[data-testid="logout-button"]');
+  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
+    await client.auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  // Simple form submit for name
+  const accountForm = document.querySelector('[data-testid="account-form"]');
+  if (accountForm) accountForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const first = document.querySelector('[data-testid="profile-firstname-input"]').value;
+    const last = document.querySelector('[data-testid="profile-lastname-input"]').value;
+    const newName = `${first} ${last}`.trim();
+    await client.auth.updateUser({ data: { name: newName } });
+    // update local UI bits
+    const nameEl = document.querySelector('[data-testid="profile-name"]');
+    if (nameEl) nameEl.textContent = newName;
+    if (window.showToast) window.showToast('Профиль обновлён', 'success');
+    // note: CURRENT_USER not mutated for simplicity; reload page to see sidebar
+  });
+
+  // Other buttons demo (toast for non-flaky UX)
+  const changePass = document.querySelector('[data-testid="change-password-button"]');
+  if (changePass) changePass.addEventListener('click', () => {
+    if (window.showToast) window.showToast('Пароль обновлён (demo)', 'success');
+  });
+
+  const deleteAcc = document.querySelector('[data-testid="delete-account-button"]');
+  if (deleteAcc) deleteAcc.addEventListener('click', () => {
+    if (confirm('Delete account?')) {
+      if (window.showToast) window.showToast('Аккаунт удалён (demo)', 'default');
+    }
+  });
+  } catch (e) {
+    console.error('Profile load error', e);
+    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading profile. <a href="index.html">Go to login</a></div>';
+  }
+})();
+</script>
 </body>
 </html>

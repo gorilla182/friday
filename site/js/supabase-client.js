@@ -12,6 +12,11 @@ window.createSupabaseClient = () => {
 };
 // Helper to require auth
 window.requireAuth = async (client) => {
+    if (!client) {
+        console.error('Supabase client not available');
+        window.location.href = 'index.html';
+        return null;
+    }
     const { data: { user } } = await client.auth.getUser();
     if (!user) {
         window.location.href = 'index.html';

@@ -1,192 +1,142 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Teststand</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/header.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дашборд — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/products.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/supabase-data.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/store.js"></script>
 </head>
-<body>
-  <!-- Header injected by js/header.js for consistency (includes nav and logout) -->
+<body data-page="dashboard">
 
-  <main class="container main">
-    <section data-testid="dashboard-page">
-      <div class="page-header">
-        <h1 data-testid="dashboard-heading">Product catalog</h1>
-        <p class="muted" id="welcome" data-testid="dashboard-welcome"></p>
+<div id="app-root"></div>
+
+<script>
+(async () => {
+  try {
+  const client = window.createSupabaseClient();
+  if (!client) return;
+
+  const user = await window.requireAuth(client);
+  if (!user) return;
+
+  const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
+  window.CURRENT_USER = currentUser;
+  CURRENT_USER = currentUser;
+
+  const products = await window.loadProducts(client);
+  window.PRODUCTS = products;
+  PRODUCTS = products;
+
+  // Load cart data early for stats and to decide button vs stepper
+  const cartData = await window.loadCart(client, user.id);
+  let cartCount = 0;
+  let cartTotal = 0;
+  Object.entries(cartData).forEach(([pid, qty]) => {
+    cartCount += qty;
+    const p = products.find(pp => pp.id === pid);
+    if (p) cartTotal += p.price * qty;
+  });
+
+  // populate Store + badge BEFORE mount (reuse loaded cartData, no extra fetch)
+  window.populateStoreFromCart(cartData);
+
+  mountLayout({ active: 'dashboard', pageTitleMini: 'Дашборд' });
+
+  const apiItemsCount = (await window.loadApiItems(client, user.id)).length;
+
+  const main = document.getElementById('main-content');
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="page-eyebrow">Обзор</span>
+        <h1 class="page-title" data-testid="page-title">Добро пожаловать, ${currentUser.name.split(' ')[0]}</h1>
+        <p class="page-sub">Сводка по магазину и товарам, доступным для заказа</p>
       </div>
-
-      <!-- New: Search and filters for better test coverage -->
-      <div class="filters" data-testid="dashboard-filters">
-        <input 
-          type="text" 
-          id="search-input" 
-          placeholder="Search products..." 
-          data-testid="search-input"
-          style="margin-right: 10px; padding: 8px;"
-        >
-        <select id="sort-select" data-testid="sort-select" style="padding: 8px; margin-right: 10px;">
-          <option value="name-asc">Name A-Z</option>
-          <option value="name-desc">Name Z-A</option>
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
-        </select>
-        <select id="category-select" data-testid="category-select" style="padding: 8px; margin-right: 10px;">
-          <option value="">All Categories</option>
-          <option value="programming">Programming</option>
-          <option value="testing">Testing</option>
-        </select>
-        <button id="clear-filters" data-testid="clear-filters-btn" style="padding: 8px;">Clear</button>
-      </div>
-
-      <div class="product-grid" data-testid="product-list" id="product-list">
-        <!-- Products loaded via JS -->
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer" data-testid="site-footer">
-    <div class="container">
-      <p>Teststand — training app for automated testing</p>
+      <a href="catalog.html" class="btn btn-secondary" data-testid="view-catalog-button">
+        Весь каталог
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
     </div>
-  </footer>
 
-  <script>
-    const client = window.createSupabaseClient();
-    let allProducts = [];
+    <div class="stat-grid" data-testid="stat-grid">
+      <div class="stat-card" data-testid="stat-card-cart-items">
+        <span class="stat-label">В корзине</span>
+        <span class="stat-value" data-testid="stat-cart-count">${cartCount}</span>
+        <span class="stat-delta" data-testid="stat-cart-total">$${cartTotal.toFixed(2)}</span>
+      </div>
+      <div class="stat-card" data-testid="stat-card-products">
+        <span class="stat-label">Товаров в каталоге</span>
+        <span class="stat-value" data-testid="stat-products-total">${products.length}</span>
+        <span class="stat-delta up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          ${products.length} в наличии
+        </span>
+      </div>
+      <div class="stat-card" data-testid="stat-card-out-of-stock">
+        <span class="stat-label">Нет в наличии</span>
+        <span class="stat-value" data-testid="stat-out-of-stock-count">0</span>
+        <span class="stat-delta down">требует поставки</span>
+      </div>
+      <div class="stat-card" data-testid="stat-card-api-items">
+        <span class="stat-label">My API Items</span>
+        <span class="stat-value" data-testid="stat-api-items-count">${apiItemsCount}</span>
+        <span class="stat-delta"><a href="profile.html#api-items" class="section-link" style="font-size:11px">смотреть →</a></span>
+      </div>
+    </div>
 
-    function createFallbackCard(product) {
-      const el = document.createElement('article');
-      el.className = 'product-card';
-      el.setAttribute('data-testid', `product-card-${product.id}`);
-      el.innerHTML = `
-        <h2 data-testid="product-name-${product.id}">${product.name}</h2>
-        <p class="price" data-testid="product-price-${product.id}">$${product.price.toFixed(2)}</p>
-        <p class="description">${product.description || ''}</p>
-        <a href="item_detail.html?id=${product.id}" 
-           class="btn btn-secondary" 
-           data-testid="product-view-${product.id}">View details</a>
-      `;
-      return el;
-    }
+    <div class="section-head">
+      <h2>Рекомендуемые товары</h2>
+      <a href="catalog.html" class="section-link" data-testid="dashboard-catalog-link">
+        Открыть каталог
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
 
-    async function loadDashboard() {
-      const user = await window.requireAuth(client);
-      if (!user) return;
+    <div class="product-grid" id="dashboard-product-grid" data-testid="dashboard-product-grid"></div>
+  `;
 
-      const { data: { user: freshUser } } = await client.auth.getUser();
-      const name = freshUser?.user_metadata?.name || freshUser?.email?.split('@')[0] || 'User';
-      document.getElementById('welcome').textContent = `Welcome, ${name}!`;
+  // render featured using shared renderer (respects current cart state from early load)
+  const grid = document.getElementById('dashboard-product-grid');
+  const featured = products.slice(0, 6);
+  const currentCart = Store.getCart();
+  grid.innerHTML = featured.map(p => window.renderProductCard(p, currentCart[p.id] || 0)).join('');
 
-      const { data: products, error } = await client
-        .from('products')
-        .select('*')
-        .order('id');
-
-      const container = document.getElementById('product-list');
-      container.innerHTML = '';
-
-      if (error) {
-        container.innerHTML = `<p data-testid="empty-products">Error loading products.</p>`;
-        return;
-      }
-
-      allProducts = products || [];
-
-      if (allProducts.length === 0) {
-        container.innerHTML = `<p data-testid="empty-products">No products available.</p>`;
-        return;
-      }
-
-      renderProducts(allProducts);
-
-      // Setup filters (new)
-      setupFilters();
-    }
-
-    function renderProducts(products) {
-      const container = document.getElementById('product-list');
-      container.innerHTML = '';
-
-      products.forEach((product) => {
-        const article = (window as any).createProductCard 
-          ? (window as any).createProductCard(product) 
-          : createFallbackCard(product);
-        container.appendChild(article);
-      });
-    }
-
-    function setupFilters() {
-      const searchInput = document.getElementById('search-input');
-      const sortSelect = document.getElementById('sort-select');
-      const categorySelect = document.getElementById('category-select');
-      const clearBtn = document.getElementById('clear-filters');
-
-      // Populate categories dynamically from products
-      const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
-      categorySelect.innerHTML = '<option value="">All Categories</option>';
-      categories.forEach((cat) => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
-        categorySelect.appendChild(opt);
-      });
-
-      const filterAndRender = () => {
-        let filtered = [...allProducts];
-
-        // Search by name
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        if (searchTerm) {
-          filtered = filtered.filter((p) => 
-            p.name.toLowerCase().includes(searchTerm) || 
-            (p.description && p.description.toLowerCase().includes(searchTerm))
-          );
-        }
-
-        // Category filter
-        const selectedCat = categorySelect.value;
-        if (selectedCat) {
-          filtered = filtered.filter((p) => p.category === selectedCat);
-        }
-
-        // Sort
-        const sortValue = sortSelect.value;
-        if (sortValue === 'name-asc') {
-          filtered.sort((a, b) => a.name.localeCompare(b.name));
-        } else if (sortValue === 'name-desc') {
-          filtered.sort((a, b) => b.name.localeCompare(a.name));
-        } else if (sortValue === 'price-low') {
-          filtered.sort((a, b) => a.price - b.price);
-        } else if (sortValue === 'price-high') {
-          filtered.sort((a, b) => b.price - a.price);
-        }
-
-        renderProducts(filtered);
-      };
-
-      searchInput.addEventListener('input', filterAndRender);
-      sortSelect.addEventListener('change', filterAndRender);
-      categorySelect.addEventListener('change', filterAndRender);
-
-      clearBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        sortSelect.value = 'name-asc';
-        categorySelect.value = '';
-        renderProducts(allProducts);
-      });
-    }
-
-    // Logout
-    document.getElementById('logout-btn')?.addEventListener('click', async () => {
-      await client.auth.signOut();
-      window.location.href = 'index.html';
+  // helper to refresh cart stats widgets (used by handlers + can call post checkout etc)
+  async function updateCartStats() {
+    const cartData = await window.loadCart(client, user.id);
+    let cartCount = 0;
+    let cartTotal = 0;
+    Object.entries(cartData).forEach(([pid, qty]) => {
+      cartCount += qty;
+      const p = products.find(pp => pp.id === pid);
+      if (p) cartTotal += p.price * qty;
     });
+    const countEl = document.querySelector('[data-testid="stat-cart-count"]');
+    const totalEl = document.querySelector('[data-testid="stat-cart-total"]');
+    if (countEl) countEl.textContent = cartCount;
+    if (totalEl) totalEl.textContent = '$' + cartTotal.toFixed(2);
+    // keep Store in sync too
+    window.populateStoreFromCart(cartData);
+  }
 
-    loadDashboard();
-  </script>
+  window.attachProductGridHandlers(grid, client, user, products, updateCartStats);
+  } catch (e) {
+    console.error('Dashboard load error', e);
+    document.body.innerHTML = '<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading dashboard. <a href="index.html">Go to login</a></div>';
+  }
+})();
+</script>
 </body>
 </html>

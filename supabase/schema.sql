@@ -9,6 +9,7 @@ create table if not exists public.products (
   name text not null,
   description text not null,
   price numeric(10,2) not null,
+  category text default 'general',
   created_at timestamptz default now()
 );
 
@@ -67,6 +68,12 @@ create policy "Products are publicly readable"
   for select
   using (true);
 
+-- Allow adding products via the "API Items" UI (teststand feature: api items service adds to catalog)
+create policy "Anyone can insert products (via API Items add-to-catalog)"
+  on public.products
+  for insert
+  with check (true);
+
 -- API_ITEMS: все читают, только владелец пишет/меняет/удаляет
 create policy "Anyone can read api_items"
   on public.api_items
@@ -119,17 +126,20 @@ create policy "Users manage order items of their orders"
 -- ============================================
 -- SEED: продукты (каталог)
 -- ============================================
-insert into public.products (name, description, price)
+insert into public.products (name, description, price, category)
 values
-  ('Python Handbook', 'A concise guide to Python programming.', 29.99),
-  ('Playwright in Action', 'End-to-end testing with Playwright.', 39.99),
-  ('API Testing Cookbook', 'Recipes for REST API test automation.', 24.99),
-  ('Test Data Builder', 'Patterns for predictable test fixtures.', 19.99),
-  ('Locators Guide', 'Stable selectors for UI automation.', 14.99)
+  ('Python Handbook', 'A concise guide to Python programming.', 29.99, 'programming'),
+  ('Playwright in Action', 'End-to-end testing with Playwright.', 39.99, 'testing'),
+  ('API Testing Cookbook', 'Recipes for REST API test automation.', 24.99, 'testing'),
+  ('Test Data Builder', 'Patterns for predictable test fixtures.', 19.99, 'testing'),
+  ('Locators Guide', 'Stable selectors for UI automation.', 14.99, 'testing')
 on conflict do nothing;
 
 -- ============================================
 -- Примечание:
 -- api_items засеиваем позже (после создания пользователей alice/bob),
 -- потому что нужен user_id (uuid из auth.users)
+--
+-- Добавление через UI "My API Items" теперь также создаёт запись в products (каталог).
+-- Для этого нужна политика INSERT на products (добавлена выше).
 -- ============================================

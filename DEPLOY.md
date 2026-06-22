@@ -1,52 +1,96 @@
-# Deploy to GitHub Pages
+# Варианты деплоя
 
-The static site lives in the `site/` folder.
+Статический сайт находится в папке `site/`. Его можно задеплоить на Vercel (рекомендуется) или GitHub Pages.
 
-## Quick deploy (recommended)
+Фронтенд использует публичный ключ Supabase (безопасно хранить в репозитории) и напрямую общается с Supabase (Auth, база данных, Edge Functions).
 
-1. Push this repository to GitHub (e.g. `https://github.com/USERNAME/friday`)
+## 1. Vercel (рекомендуется)
 
-2. Go to your repository → **Settings → Pages**
+Vercel даёт быстрые деплои, preview-ссылки на каждую ветку/PR, отличный CDN и удобный DX.
 
-3. Under "Build and deployment":
+### Ручной деплой через Dashboard Vercel
+
+1. Запушьте репозиторий в GitHub.
+2. Перейдите на [vercel.com](https://vercel.com) → **Add New Project** → импортируйте репозиторий.
+3. Vercel автоматически подхватит настройки из `vercel.json`.
+
+   При необходимости укажите вручную:
+   - **Framework Preset**: `Other`
+   - **Build Command**: (оставьте пустым)
+   - **Output Directory**: `site`
+   - **Install Command**: (оставьте пустым)
+
+4. Нажмите **Deploy**.
+
+Сайт будет доступен по адресу `https://ваш-проект.vercel.app`.
+
+### Автоматический деплой через GitHub Actions
+
+В проекте есть workflow `.github/workflows/deploy-vercel.yml` с **отдельными джобами**:
+
+- `test` — проверяет код, собирает TypeScript, запускает тесты
+- `deploy-preview` — деплой превью (только для Pull Request)
+- `deploy-production` — деплой в продакшн (только на `main`)
+
+**Настройка секретов:**
+
+1. В проекте Vercel → **Settings → General** скопируйте:
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+
+2. В GitHub → **Settings → Secrets and variables → Actions** добавьте:
+   - `VERCEL_TOKEN` (создайте на https://vercel.com/account/tokens)
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+
+После этого деплой происходит автоматически:
+- Пуш в `main` → Production
+- Pull Request → Preview (Vercel добавляет комментарий со ссылкой)
+
+### Как это работает
+
+- `vercel.json` указывает, что нужно отдавать только папку `site/` как статический сайт.
+- В workflow сначала выполняются тесты и сборка.
+- Все ссылки относительные — работают на любом домене.
+
+## 2. GitHub Pages
+
+1. Запушьте код в репозиторий.
+2. В репозитории перейдите **Settings → Pages**:
    - Source: **GitHub Actions**
 
-4. Push to `main` branch (or run the workflow manually).
+3. Запушьте в `main` (или запустите workflow вручную).
 
-The site will be available at:
-`https://USERNAME.github.io/friday`
+Адрес сайта:
+`https://USERNAME.github.io/friday` (или `/REPO-NAME`, если название репозитория отличается).
 
-## How it works
+Workflow находится в `.github/workflows/deploy-pages.yml` и также разделён на отдельные джобы (`test`, `build`, `deploy`).
 
-- `.github/workflows/deploy-pages.yml` uploads only the `site/` folder.
-- GitHub Pages serves it statically.
-- The site talks directly to your Supabase project (public publishable key).
+## Важные замечания
 
-## Important notes
+- Ключи Supabase (публичные) безопасно хранить в коде.
+- Сайт полностью статический — не требует сервера.
+- Навигация использует относительные ссылки на `.html` файлы.
+- Можно одновременно использовать Vercel и GitHub Pages.
+- Для продакшена подключите свой домен в любой из платформ.
 
-- The Supabase publishable key is **safe** to commit (it's meant for client-side).
-- If your repo name is not `friday`, the URL will be `https://USERNAME.github.io/REPO-NAME`.
-- All links inside the site are relative, so subpath works.
+## Сброс данных для тестов
 
-## After first deploy
-
-1. Open the site.
-2. Test login with `alice@example.com` / `password123`.
-3. Try adding to cart and checkout.
-
-## Resetting data for tests
-
-See the reset instructions in the main README or run:
-
-```bash
-# In Supabase SQL Editor
-# (use the reset_teststand function or the Edge Function)
+```sql
+-- В Supabase SQL Editor
+SELECT * FROM public.reset_teststand();
 ```
 
-## Local testing
+Или через Edge Function:
+
+```bash
+curl -X POST https://<ваш-проект>.supabase.co/functions/v1/api/admin/reset
+```
+
+## Локальный запуск
 
 ```bash
 cd site
 python -m http.server 8000
-# open http://localhost:8000
+# откройте http://localhost:8000
 ```

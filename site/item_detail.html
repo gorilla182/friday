@@ -1,189 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Item — Teststand</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Товар — QA Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/products.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/supabase-data.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/store.js"></script>
 </head>
 <body>
-  <!-- Header injected by js/header.js -->
 
-  <main class="container">
-    <section data-testid="item-detail-page">
-      <div id="item-content">
-        <!-- JS populates this -->
+<div id="app-root"></div>
+
+<script>
+(async () => {
+  try {
+    const client = window.createSupabaseClient();
+    const user = await window.requireAuth(client);
+    if (!user) return;
+
+    const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
+    window.CURRENT_USER = currentUser;
+    CURRENT_USER = currentUser;
+
+    await window.syncStoreFromDB(client, user.id);
+    mountLayout({ active: 'catalog', pageTitleMini: 'Товар' });
+
+    const main = document.getElementById('main-content');
+
+    const params = new URLSearchParams(location.search);
+    const id = parseInt(params.get('id'));
+    if (!id) {
+      main.innerHTML = '<p>Товар не найден</p>';
+      return;
+    }
+
+    const products = await window.loadProducts(client);
+    const product = products.find(p => p.id == id);
+    if (!product) {
+      main.innerHTML = '<p>Товар не найден</p>';
+      return;
+    }
+
+    main.innerHTML = `
+      <div class="page-head">
+        <div>
+          <span class="page-eyebrow">Товар</span>
+          <h1 class="page-title" data-testid="item-name">${product.name}</h1>
+        </div>
       </div>
+      <div class="product-thumb" style="width:60px;height:60px;margin-bottom:8px;">${window.productIcon(product.img || 'keyboard', 60)}</div>
+      <p class="price" data-testid="item-price">${window.formatPrice(product.price)}</p>
+      <p data-testid="item-description">${product.description || ''}</p>
 
-      <form id="add-to-cart-form" style="margin-top: 1.5rem;" data-testid="add-to-cart-form">
-        <label>Quantity
-          <input type="number" id="quantity" value="1" min="1" data-testid="quantity-input">
-        </label>
-        <button type="submit" data-testid="add-to-cart-submit">Add to cart</button>
+      <form id="add-to-cart-form" data-testid="add-to-cart-form" style="margin-top:1rem;">
+        <input type="number" id="quantity" value="1" min="1" data-testid="add-to-cart-quantity" style="width:60px;">
+        <button type="submit" class="btn btn-primary" data-testid="add-to-cart-submit">Добавить в корзину</button>
       </form>
 
-      <!-- New: Reviews section for expanded UI test coverage -->
-      <div id="reviews-section" style="margin-top: 2rem;" data-testid="reviews-section">
-        <h3 data-testid="reviews-heading">Reviews</h3>
+      <div id="reviews-section" style="margin-top:2rem;" data-testid="reviews-section">
+        <h3 data-testid="reviews-heading">Отзывы</h3>
         <div id="reviews-list" data-testid="reviews-list"></div>
-
-        <div id="add-review-form" style="margin-top: 1rem;" data-testid="add-review-form">
-          <h4>Add your review</h4>
+        <div id="add-review-form" style="margin-top:1rem;" data-testid="add-review-form">
+          <h4>Оставить отзыв</h4>
           <select id="review-rating" data-testid="review-rating">
-            <option value="5">5 - Excellent</option>
-            <option value="4">4 - Good</option>
-            <option value="3">3 - Average</option>
-            <option value="2">2 - Poor</option>
-            <option value="1">1 - Terrible</option>
+            <option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option>
           </select>
-          <textarea id="review-comment" placeholder="Your comment (optional)" data-testid="review-comment" style="width:100%; height:60px;"></textarea>
-          <button id="submit-review-btn" data-testid="submit-review-button">Submit Review</button>
+          <textarea id="review-comment" placeholder="Комментарий" data-testid="review-comment" style="width:100%;height:60px;"></textarea>
+          <button id="submit-review-btn" class="btn btn-accent" data-testid="submit-review-button">Отправить</button>
         </div>
       </div>
 
-      <div id="error-message" data-testid="error-message" style="display:none;"></div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>
-    const client = window.createSupabaseClient();
-
-    async function loadItem() {
-      const user = await window.requireAuth(client);
-      if (!user) return;
-
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-
-      if (!id) {
-        window.location.href = 'dashboard.html';
-        return;
-      }
-
-      const { data: product, error } = await client
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      const container = document.getElementById('item-content');
-
-      if (error || !product) {
-        container.innerHTML = `<p>Product not found.</p>`;
-        return;
-      }
-
-      container.innerHTML = `
-        <h1 data-testid="item-name">${product.name}</h1>
-        <p class="price" data-testid="item-price">$${product.price.toFixed(2)}</p>
-        <p data-testid="item-description">${product.description}</p>
-        <a href="dashboard.html" data-testid="back-link">← Back to catalog</a>
-      `;
-    }
+      <a href="catalog.html" data-testid="back-link">← Назад в каталог</a>
+    `;
 
     document.getElementById('add-to-cart-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const user = await window.requireAuth(client);
-      if (!user) return;
-
-      const params = new URLSearchParams(window.location.search);
-      const productId = parseInt(params.get('id'));
-      const quantity = parseInt(document.getElementById('quantity').value) || 1;
-
-      const { error } = await client
-        .from('cart_items')
-        .upsert({ 
-          user_id: user.id, 
-          product_id: productId, 
-          quantity 
-        }, { 
-          onConflict: 'user_id,product_id' 
-        });
-
-      if (error) {
-        window.showError('Failed to add to cart: ' + error.message);
-      } else {
-        window.location.href = 'cart.html';
-      }
+      const qty = parseInt(document.getElementById('quantity').value) || 1;
+      await window.addToCartDB(client, user.id, id, qty);
+      await window.syncStoreFromDB(client, user.id);
+      window.location.href = 'cart.html';
     });
 
-    // New: Reviews functionality
-    async function loadReviews(productId) {
-      const { data: reviews, error } = await client
-        .from('reviews')
-        .select('*')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: false });
-
+    async function loadReviews() {
+      const revs = await window.loadReviews(client, id);
       const list = document.getElementById('reviews-list');
-      list.innerHTML = '';
-
-      if (error || !reviews || reviews.length === 0) {
-        list.innerHTML = '<p data-testid="no-reviews">No reviews yet. Be the first!</p>';
-        return;
-      }
-
-      reviews.forEach(r => {
-        const div = document.createElement('div');
-        div.setAttribute('data-testid', `review-${r.id}`);
-        div.innerHTML = `
+      list.innerHTML = (revs && revs.length) ? revs.map(r => `
+        <div data-testid="review-${r.id}">
           <strong>Rating: ${r.rating}/5</strong>
-          <p data-testid="review-comment-${r.id}">${r.comment || '(no comment)'}</p>
-          <small>by ${r.user_id.slice(0,8)}... on ${new Date(r.created_at).toLocaleDateString()}</small>
-        `;
-        list.appendChild(div);
-      });
+          <p data-testid="review-comment-${r.id}">${r.comment || ''}</p>
+        </div>
+      `).join('') : '<p data-testid="no-reviews">Отзывов пока нет. Будьте первым!</p>';
     }
+    loadReviews();
 
-    async function submitReview(productId) {
-      const user = await window.requireAuth(client);
-      if (!user) return;
-
+    document.getElementById('submit-review-btn').onclick = async () => {
       const rating = parseInt(document.getElementById('review-rating').value);
       const comment = document.getElementById('review-comment').value.trim();
-
-      const btn = document.getElementById('submit-review-btn');
-      window.setLoading(btn, true, 'Submit Review');
-
-      const { error } = await client.from('reviews').insert({
-        product_id: productId,
-        user_id: user.id,
-        rating,
-        comment: comment || null
-      });
-
-      window.setLoading(btn, false);
-
-      if (error) {
-        window.showError('Failed to submit review: ' + error.message);
-      } else {
+      const ok = await window.addReviewDB(client, user.id, id, rating, comment);
+      if (ok) {
         document.getElementById('review-comment').value = '';
-        await loadReviews(productId);
-        window.hideError();
-      }
-    }
-
-    // Load reviews after product
-    const originalLoadItem = loadItem;
-    window.loadItem = async function() {
-      await originalLoadItem();
-      const params = new URLSearchParams(window.location.search);
-      const id = parseInt(params.get('id'));
-      if (id) {
-        await loadReviews(id);
-
-        // Attach review submit
-        const reviewBtn = document.getElementById('submit-review-btn');
-        if (reviewBtn) {
-          reviewBtn.onclick = () => submitReview(id);
-        }
+        if (window.showToast) window.showToast('Отзыв отправлен', 'success');
+        loadReviews();
+      } else {
+        if (window.showToast) window.showToast('Ошибка отправки отзыва', 'error');
       }
     };
-
-    loadItem();
-  </script>
+  } catch (e) {
+    console.error('Item detail error', e);
+    document.body.innerHTML = '<div data-testid="error-state">Error loading item. <a href="dashboard.html">Back</a></div>';
+  }
+})();
+</script>
 </body>
 </html>
