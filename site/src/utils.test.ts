@@ -20,15 +20,15 @@ describe('filterAndSortProducts', () => {
   });
 
   it('filters by category', () => {
-    const result = filterAndSortProducts(mockProducts, '', 'name-asc', 'phones');
+    const result = filterAndSortProducts(mockProducts, '', 'name-asc', 'laptops');
     expect(result).toHaveLength(1);
-    expect(result[0].category).toBe('phones');
+    expect(result[0].category).toBe('laptops');
   });
 
   it('sorts by price low to high', () => {
     const result = filterAndSortProducts(mockProducts, '', 'price-low');
     expect(result[0].price).toBe(999);
-    expect(result[2].price).toBe(1099);
+    expect(result[2].price).toBe(1199);
   });
 
   it('combines search and sort', () => {

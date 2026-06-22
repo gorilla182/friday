@@ -29,3 +29,4 @@ site/js/*.js.map
 *.log
 .vercel/
 .env*
+.vercel
