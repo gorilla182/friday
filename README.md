@@ -1,97 +1,113 @@
 # Friday — Учебный тест-стенд для автотестов
 
-Проект предназначен для практики написания автотестов (Playwright + requests / Playwright + API).
+**Friday** — это специально спроектированный учебный тест-стенд для отработки навыков автоматизации тестирования.
 
-**Архитектура (2026):**
-- Фронтенд: полностью статический сайт (HTML + vanilla JS + CSS)
-- Бэкенд: Supabase (PostgreSQL + Auth + Row Level Security)
-- Деплой фронтенда: Vercel (рекомендуется) или GitHub Pages
-- API для тестов: Supabase Edge Functions (реалистичные HTTP эндпоинты)
+### Для чего создан проект
+
+- Практика **Playwright** (UI-тесты, E2E, компонентные тесты)
+- Практика **API-тестирования** (REST, авторизация, негативные сценарии, контракты)
+- Изучение работы с реальными системами (аутентификация, владение данными, ошибки, сброс состояния)
+
+Проект имитирует типичное веб-приложение, но при этом остаётся **максимально простым и предсказуемым**, чтобы тесты было удобно писать и поддерживать.
+
+## Архитектура
+
+| Слой          | Технология                          | Особенности |
+|---------------|-------------------------------------|-----------|
+| **Фронтенд**  | Статический сайт (HTML + Vanilla JS + CSS) | MPA, нет сборки фронтенда |
+| **Бэкенд**    | Supabase (PostgreSQL + Auth + RLS) | Публичный ключ в репозитории |
+| **API**       | Supabase Edge Functions (Deno)     | Один файл, реалистичные эндпоинты |
+| **Деплой**    | Vercel (фронтенд) + Supabase       | Vercel — основной способ |
+
+Фронтенд напрямую работает с Supabase (через клиент) и с кастомным API (через Edge Function). Это позволяет тестировать как прямые вызовы базы, так и классический REST.
 
 ## Быстрый старт
 
-### Локальный запуск фронтенда
+### Локальный запуск
 
 ```bash
-cd friday
 cd site
 python -m http.server 8000
 # Откройте http://localhost:8000
 ```
 
-Тестовые пользователи (созданы в Supabase):
+### Тестовые учётные записи
+
 - `alice@example.com` / `password123`
 - `bob@example.com` / `password123`
 
-### Сброс данных (для изоляции тестов)
+### Сброс данных
 
-Самый удобный способ — вызвать Edge Function:
+Самый удобный способ:
 
 ```bash
-curl -X POST https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api/admin/reset \
+curl -X POST https://<your-project>.supabase.co/functions/v1/api/admin/reset \
   -H "Content-Type: application/json"
 ```
 
-Или используйте RPC напрямую через Supabase клиент с service role key (только для CI).
+Или через RPC (требуется service role key):
 
-### Наполнение каталога (products)
+```sql
+SELECT * FROM public.reset_teststand();
+```
 
-Если каталог пустой — выполните в Supabase SQL Editor содержимое:
+### Наполнение каталога товаров
 
-1. `supabase/add-categories.sql` (ALTER + UPDATE категорий)
-2. `supabase/seed-products.sql` (INSERT продуктов с категориями)
+Если каталог пустой, выполните в Supabase SQL Editor:
 
-После этого на `/dashboard.html` появятся товары, поиск, сортировка и чипы категорий будут работать.
+```sql
+-- См. файл supabase/seed-products.sql
+```
 
 ## Структура проекта
 
 ```
 friday/
-├── site/                    # Статический фронтенд
-│   ├── index.html
+├── site/                          # Статический фронтенд
+│   ├── index.html                 # Логин
+│   ├── register.html
 │   ├── dashboard.html
 │   ├── catalog.html
 │   ├── cart.html
-│   ├── profile.html
 │   ├── item_detail.html
-│   ├── register.html
+│   ├── profile.html
 │   ├── css/
-│   └── js/
+│   └── js/                        # Включая bootstrap, data layer
 ├── supabase/
-│   ├── functions/
-│   │   └── api/             # Реалистичный API слой (Edge Functions)
 │   ├── schema.sql
-│   ├── reset.sql            # Функция сброса
+│   ├── reset.sql                  # Функция сброса данных
+│   ├── functions/api/index.ts     # Основной API (Edge Function)
 │   └── seeds/
-├── vercel.json              # Конфигурация для Vercel (рекомендуется)
-├── .github/workflows/       # GitHub Actions (отдельные джобы для тестов и деплоя)
+├── vercel.json
+├── .github/workflows/deploy-vercel.yml
 └── README.md
 ```
 
-Старый Flask-код полностью удалён.
+## UI-функциональность
 
-## UI Функциональность (для Playwright тестов)
+| Страница          | Основные возможности                              | Data-testid примеры                     |
+|-------------------|----------------------------------------------------|-----------------------------------------|
+| Логин             | Вход, демо-данные                                  | `login-form`, `login-email-input`       |
+| Регистрация       | Создание аккаунта + автологин                      | `register-form`                         |
+| Дашборд           | Статистика, рекомендуемые товары                   | `stat-card-*`, `dashboard-product-grid` |
+| Каталог           | Поиск, сортировка, фильтр по категории, пагинация | `category-chip-*`, `pagination-*`       |
+| Карточка товара   | Детали, добавление в корзину, отзывы               | `item-name`, `reviews-list`             |
+| Корзина           | Изменение количества, промокоды, оформление заказа | `cart-item`, `checkout-button`          |
+| Профиль           | Редактирование имени, My API Items, история заказов | `tab-orders`, `api-items-table`       |
 
-Текущий магазин покрывает:
+Все элементы имеют стабильные `data-testid`.
 
-- Регистрация и логин (с автопереходом)
-- Просмотр каталога с **поиском по названию**, **сортировкой** (имя/цена), **фильтром по категории**
-- Детальная карточка товара (`item_detail.html`) + добавление в корзину + **отзывы**
-- Корзина: обновление количества, удаление, применение промокодов
-- Checkout и оформление заказа (создание order + order_items, очистка корзины)
-- Профиль: просмотр, **редактирование имени**, **My API Items** (добавление/удаление), безопасность
-- **Отзывы к товарам**: просмотр и добавление отзывов с рейтингом 1-5
+## API Reference
 
-Все интерактивные элементы имеют `data-testid` для стабильных локаторов (Playwright).
-
-## API Эндпоинты (для тестов на requests / pytest)
-
-Базовый URL:  
-`https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api`
+**Base URL:**
+```
+https://<your-project-ref>.supabase.co/functions/v1/api
+```
 
 ### Аутентификация
 
-**Регистрация**
+#### Регистрация
+
 ```http
 POST /auth/register
 Content-Type: application/json
@@ -103,7 +119,17 @@ Content-Type: application/json
 }
 ```
 
-**Логин**
+**Ответ (201):**
+```json
+{
+  "id": "uuid",
+  "email": "new@example.com",
+  "name": "New User"
+}
+```
+
+#### Логин
+
 ```http
 POST /auth/login
 Content-Type: application/json
@@ -114,101 +140,262 @@ Content-Type: application/json
 }
 ```
 
-Ответ:
+**Ответ:**
 ```json
 {
-  "access_token": "eyJ...",
+  "access_token": "eyJhbGci...",
   "token_type": "Bearer",
   "user": { ... }
 }
 ```
 
-### Items (API Items — сервис добавления товаров)
+### Items (API Items)
 
-**Список с пагинацией и фильтрами**
+Полноценный CRUD с ownership, пагинацией и фильтрами.
+
+#### Получить список
+
 ```http
 GET /items?page=1&limit=10&category=testing
 Authorization: Bearer <token>
 ```
 
-Ответ содержит `items`, `page`, `limit`, `total`, `total_pages`.
+**Ответ:**
+```json
+{
+  "items": [...],
+  "page": 1,
+  "limit": 10,
+  "total": 42,
+  "total_pages": 5
+}
+```
 
-**Создание**
+#### Создать
+
 ```http
 POST /items
 Authorization: Bearer <token>
 
 {
-  "title": "New task",
-  "description": "Описание",
+  "title": "Write login tests",
+  "description": "Cover happy and negative cases",
   "category": "testing"
 }
 ```
 
-**CRUD по ID**
-- `GET /items/123`
-- `PUT /items/123` (только владелец)
-- `DELETE /items/123` (только владелец)
+#### Получить по ID / Обновить / Удалить
 
-### Другие эндпоинты
+- `GET /items/{id}`
+- `PUT /items/{id}` — только владелец
+- `DELETE /items/{id}` — только владелец
 
-- `GET /categories` — уникальные категории
-- `GET /products` — товары магазина (зеркало для тестов)
-- `GET /reviews?product_id=1` — отзывы
-- `POST /reviews` (auth) — добавить отзыв
-- `DELETE /reviews/:id` (auth, только владелец)
-- `GET /orders` (auth) — заказы пользователя
-- `GET /profile` (auth) — профиль + количество заказов
-- `PUT /profile` (auth) — обновить имя
+### Специальные эндпоинты для тестирования
 
-### Edge-кейсы и админ
+#### Имитация ошибок
 
-- `POST /items/trigger-error`
-  ```json
-  { "payload": "server_error" }   // → 500
-  { "payload": "rate_limit" }     // → 429
-  ```
-- `POST /admin/reset` — полный сброс данных (для изоляции тестов)
+```http
+POST /items/trigger-error
+Content-Type: application/json
 
-## GitHub Actions (деплой на Vercel)
-
-- **deploy-vercel.yml** — `test` → `deploy-preview` (PR) / `deploy-production` (main)
-
-Секреты для Vercel:
-- VERCEL_TOKEN
-- VERCEL_ORG_ID
-- VERCEL_PROJECT_ID
-
-**GitHub Pages больше не поддерживается.** Основной способ деплоя — Vercel + Supabase.
-
-## Как писать тесты
-
-### Playwright (UI)
-Используйте `page.goto`, `locator('[data-testid="..."]')`. Все важные элементы помечены `data-testid`.
-
-### requests (API)
-```python
-import requests
-
-BASE = "https://fvxhcfisnsganugrgqnm.supabase.co/functions/v1/api"
-
-r = requests.post(f"{BASE}/auth/login", json={...})
-token = r.json()["access_token"]
-headers = {"Authorization": f"Bearer {token}"}
-
-r = requests.post(f"{BASE}/items", json={"title": "Test"}, headers=headers)
+{ "payload": "server_error" }   // 500
+{ "payload": "rate_limit" }     // 429
 ```
 
-### Сброс перед каждым тестом
-```python
-requests.post(f"{BASE}/admin/reset")
+#### Полный сброс данных
+
+```http
+POST /admin/reset
 ```
 
-## Полезные советы
+Возвращает результат выполнения `reset_teststand()`.
 
-- Используйте `/admin/reset` в `autouse` фикстуре.
-- Тестируйте негативные сценарии (`/items/trigger-error`, 403 на чужие items).
-- Проверяйте пагинацию, фильтры, ownership.
-- Тестируйте отзывы и историю заказов через UI + API.
+### Категории
 
-Проект имитирует поведение реальных веб-приложений, но остаётся простым и предсказуемым для написания стабильных автотестов.
+```http
+GET /categories
+```
+
+Возвращает массив уникальных категорий из `api_items`.
+
+### Товары магазина (для зеркального тестирования)
+
+```http
+GET /products
+```
+
+Возвращает все товары из публичной таблицы `products`.
+
+### Отзывы
+
+#### Получить отзывы
+
+```http
+GET /reviews?product_id=5
+```
+
+#### Добавить отзыв
+
+```http
+POST /reviews
+Authorization: Bearer <token>
+
+{
+  "product_id": 5,
+  "rating": 5,
+  "comment": "Отличный товар!"
+}
+```
+
+#### Удалить отзыв
+
+```http
+DELETE /reviews/{id}
+Authorization: Bearer <token>
+```
+
+Только владелец может удалить свой отзыв.
+
+### Заказы
+
+```http
+GET /orders
+Authorization: Bearer <token>
+```
+
+Возвращает заказы текущего пользователя с вложенными `order_items`.
+
+### Профиль
+
+#### Получить
+
+```http
+GET /profile
+Authorization: Bearer <token>
+```
+
+**Ответ:**
+```json
+{
+  "id": "...",
+  "email": "...",
+  "name": "...",
+  "orders_count": 3
+}
+```
+
+#### Обновить имя
+
+```http
+PUT /profile
+Authorization: Bearer <token>
+
+{
+  "name": "Новое Имя"
+}
+```
+
+## База данных
+
+Основные таблицы:
+- `products` — публичный каталог
+- `api_items` — личные элементы пользователя (для API-тестирования)
+- `cart_items`
+- `orders` + `order_items`
+- `reviews`
+
+Все таблицы защищены Row Level Security (RLS).
+
+## Деплой
+
+### Vercel (рекомендуемый способ)
+
+Vercel обеспечивает быстрые деплои, preview-ссылки для каждого PR, отличный CDN и удобный developer experience.
+
+#### Импорт проекта из GitHub
+
+1. Убедитесь, что код находится в GitHub-репозитории.
+2. Перейдите на [https://vercel.com](https://vercel.com) и войдите через GitHub.
+3. Нажмите **Add New Project** → выберите ваш репозиторий → **Import**.
+4. Vercel автоматически определит настройки из `vercel.json`:
+   - **Framework Preset**: `Other`
+   - **Build Command**: (пусто)
+   - **Output Directory**: `site`
+   - **Install Command**: (пусто)
+
+5. Нажмите **Deploy**.
+
+Готово! Сайт будет доступен по адресу вида `https://friday-ваш-аккаунт.vercel.app`.
+
+#### Автоматический деплой через GitHub Actions
+
+После импорта проекта настройте CI/CD:
+
+1. Получите Org ID и Project ID:
+   - Установите Vercel CLI: `npm install -g vercel`
+   - Выполните: `vercel login` → `vercel link`
+   - Откройте `.vercel/project.json`
+
+2. Добавьте секреты в GitHub:
+   - **Settings → Secrets and variables → Actions → Secrets**
+   - Добавьте:
+     - `VERCEL_TOKEN` (создайте на https://vercel.com/account/tokens)
+     - `VERCEL_ORG_ID`
+     - `VERCEL_PROJECT_ID`
+
+   Рекомендуется хранить все три в **Secrets**, а не в Variables.
+
+3. Workflow `.github/workflows/deploy-vercel.yml` автоматически:
+   - Запускает тесты и сборку
+   - Делает **Preview** деплои для Pull Request'ов
+   - Делает **Production** деплой при пушах в `main`
+
+**Примечание для Hobby-тарифа**: даже на бесплатном плане у вас есть Org ID. Если появляется ошибка про отсутствующий `VERCEL_ORG_ID`, обязательно добавьте его.
+
+### Защита деплоев (Vercel Authentication)
+
+По умолчанию Vercel может включать защиту. Для тестового стенда:
+
+1. Откройте проект в Vercel → **Settings → Deployment Protection**
+2. Для **Production** выберите **Disabled**
+3. Сохраните
+
+После этого сайт будет публично доступен без авторизации в Vercel.
+
+### Локальная разработка
+
+```bash
+cd site
+python -m http.server 8000
+# Откройте http://localhost:8000
+```
+
+## Полезные советы для тестирования
+
+- Всегда используйте `/admin/reset` перед тестом (`autouse` фикстура).
+- Проверяйте негативные кейсы: 403 на чужие записи, 404, валидацию.
+- Используйте `data-testid` — они стабильны и не зависят от текста.
+- Тестируйте как UI, так и прямые вызовы API.
+- Обращайте внимание на ownership (только свои items/orders/reviews).
+
+## Взаимодействие фронтенда и бэкенда
+
+- Часть функциональности использует **Supabase JS клиент напрямую** (авторизация, загрузка товаров, отзывы, корзина).
+- Часть функциональности идёт через **кастомный API** (`/api/*`) — в основном для практики работы с REST (Items, Orders, Profile и т.д.).
+- Это позволяет писать разные типы тестов:
+  - Тесты, которые ходят напрямую в Supabase
+  - Тесты, которые используют только HTTP API
+  - Смешанные сценарии
+
+## Полезные советы для написания тестов
+
+- Всегда сбрасывайте данные через `/admin/reset` перед тестом.
+- Используйте `data-testid` — они не зависят от текста и локализации.
+- Проверяйте не только happy path, но и:
+  - 401/403 при доступе к чужим данным
+  - Валидацию входных данных
+  - Пагинацию и фильтры
+  - Ошибочные сценарии (`/items/trigger-error`)
+- Тестируйте как через UI, так и напрямую через API.
+
+Проект специально спроектирован так, чтобы было удобно писать стабильные и понятные автотесты.
