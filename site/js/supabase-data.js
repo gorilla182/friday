@@ -295,3 +295,42 @@ window.addProductDB = async (client, name, description = '', price = 19.99, cate
   if (error) console.error('addProductDB', error);
   return !error;
 };
+
+// ===== ORDERS HISTORY =====
+window.loadOrders = async (client, userId) => {
+  const { data, error } = await client
+    .from('orders')
+    .select(`
+      id,
+      order_number,
+      total,
+      status,
+      created_at,
+      order_items (
+        quantity,
+        price,
+        products (id, name, category)
+      )
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('loadOrders', error);
+    return [];
+  }
+  return (data || []).map(o => ({
+    id: o.id,
+    orderNumber: o.order_number,
+    total: Number(o.total) || 0,
+    status: o.status || 'completed',
+    createdAt: o.created_at,
+    items: (o.order_items || []).map(oi => ({
+      productId: oi.product_id,
+      name: oi.products?.name || 'Товар',
+      category: oi.products?.category || '',
+      quantity: oi.quantity,
+      price: Number(oi.price) || 0
+    }))
+  }));
+};

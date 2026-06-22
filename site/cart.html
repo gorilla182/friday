@@ -220,7 +220,8 @@
         const { data: order } = await client.from('orders').insert({
           user_id: user.id,
           order_number: orderNumber,
-          total: finalTotal
+          total: finalTotal,
+          status: 'completed'
         }).select().single();
 
         if (order) {

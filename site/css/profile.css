@@ -98,3 +98,47 @@
 @media (max-width: 980px) {
   .profile-form-grid { grid-template-columns: 1fr; }
 }
+
+/* Orders history */
+.order-item {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-3);
+}
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.order-date {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-left: var(--sp-2);
+}
+.order-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 600;
+}
+.order-total {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.order-meta {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+.order-details table {
+  font-size: var(--text-xs);
+  margin-top: var(--sp-2);
+}
+.order-details th,
+.order-details td {
+  padding: 4px 6px;
+}

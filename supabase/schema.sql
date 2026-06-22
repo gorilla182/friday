@@ -38,6 +38,7 @@ create table if not exists public.orders (
   user_id uuid references auth.users(id) on delete cascade not null,
   order_number text unique not null,
   total numeric(10,2) not null,
+  status text not null default 'completed',
   created_at timestamptz default now()
 );
 
@@ -142,4 +143,23 @@ on conflict do nothing;
 --
 -- Добавление через UI "My API Items" теперь также создаёт запись в products (каталог).
 -- Для этого нужна политика INSERT на products (добавлена выше).
+-- ============================================
+
+-- ============================================
+-- DEMO SEED: sample orders (run manually after you have users)
+-- Replace '00000000-0000-0000-0000-000000000000' with a real auth.users.id
+-- (you can get it from auth.users or after logging in via UI)
+-- ============================================
+-- Example (uncomment and replace UUID):
+-- INSERT INTO public.orders (user_id, order_number, total, status, created_at)
+-- VALUES
+--   ('<USER_UUID_HERE>', 'ORD-123456', 124.50, 'completed', now() - interval '5 days'),
+--   ('<USER_UUID_HERE>', 'ORD-234567', 59.98, 'completed', now() - interval '2 days')
+-- ON CONFLICT DO NOTHING;
+--
+-- Then add items (replace order_id):
+-- INSERT INTO public.order_items (order_id, product_id, quantity, price)
+-- SELECT o.id, p.id, 2, p.price FROM public.orders o, public.products p
+-- WHERE o.order_number = 'ORD-123456' AND p.name LIKE '%Playwright%' LIMIT 1;
+-- ... repeat for other items
 -- ============================================

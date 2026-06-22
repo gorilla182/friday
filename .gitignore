@@ -19,10 +19,9 @@ data/*.db
 .env
 .env.local
 
-# Compiled frontend JS (built in CI)
-site/js/*.js
+# Only ignore sourcemaps (the .js files in site/js/ are part of the static site
+# and must be committed; the TS build overwrites the generated ones in CI)
 site/js/*.js.map
-!site/js/app.js  # keep the small log if needed
 
 # Misc
 *.log

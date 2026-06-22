@@ -66,6 +66,7 @@
 
     <div class="tabs" data-testid="profile-tabs">
       <button class="tab-btn active" data-tab="account" data-testid="tab-account">Аккаунт</button>
+      <button class="tab-btn" data-tab="orders" data-testid="tab-orders">Заказы</button>
       <button class="tab-btn" data-tab="api-items" data-testid="tab-api-items">My API Items</button>
       <button class="tab-btn" data-tab="security" data-testid="tab-security">Безопасность</button>
     </div>
@@ -90,6 +91,13 @@
           </div>
           <button type="submit" class="btn btn-primary" data-testid="save-profile-button" style="margin-top:20px">Сохранить изменения</button>
         </form>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="orders" data-testid="panel-orders">
+      <div class="profile-card">
+        <h3>История заказов</h3>
+        <div id="orders-container" data-testid="orders-container"></div>
       </div>
     </div>
 
@@ -225,6 +233,137 @@
     apiItems = await window.loadApiItems(client, user.id);
     applyApiFilter();
   });
+
+  // ===== ORDERS HISTORY =====
+  const ordersContainer = document.getElementById('orders-container');
+  const orders = await window.loadOrders(client, user.id);
+
+  function statusBadge(status) {
+    const map = {
+      completed: { cls: 'badge-success', text: 'Выполнен' },
+      processing: { cls: 'badge-warning', text: 'В обработке' },
+      shipped: { cls: 'badge-neutral', text: 'Отправлен' },
+    };
+    const s = map[status] || { cls: 'badge-success', text: status };
+    return `<span class="badge ${s.cls}" data-testid="order-status">${s.text}</span>`;
+  }
+
+  function renderOrders(list) {
+    if (!ordersContainer) return;
+
+    if (list.length === 0) {
+      ordersContainer.innerHTML = `
+        <div class="state-block" data-testid="orders-empty-state">
+          <div class="state-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg>
+          </div>
+          <div class="state-title">Заказов пока нет</div>
+          <div class="state-desc">Оформите заказ в корзине — он появится здесь.</div>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            <a href="cart.html" class="btn btn-primary btn-sm" data-testid="orders-go-to-cart">Перейти в корзину</a>
+            <button class="btn btn-secondary btn-sm" data-testid="seed-demo-order-button">Добавить демо-заказ (тест)</button>
+          </div>
+        </div>
+      `;
+
+      const seedBtn = ordersContainer.querySelector('[data-testid="seed-demo-order-button"]');
+      if (seedBtn) seedBtn.addEventListener('click', async () => {
+        seedBtn.disabled = true;
+        try {
+          // pick a random product
+          const prods = await window.loadProducts(client);
+          const prod = prods.length ? prods[Math.floor(Math.random() * prods.length)] : { id: 1, price: 29.99, name: 'Demo Product' };
+          const orderNum = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+          const { data: ord } = await client.from('orders').insert({
+            user_id: user.id,
+            order_number: orderNum,
+            total: prod.price,
+            status: 'completed'
+          }).select().single();
+
+          if (ord) {
+            await client.from('order_items').insert({
+              order_id: ord.id,
+              product_id: parseInt(prod.id),
+              quantity: 1,
+              price: prod.price
+            });
+          }
+          const fresh = await window.loadOrders(client, user.id);
+          renderOrders(fresh);
+          if (window.showToast) window.showToast('Демо-заказ добавлен', 'success');
+        } catch (err) {
+          console.error(err);
+          if (window.showToast) window.showToast('Не удалось добавить демо', 'error');
+        } finally {
+          seedBtn.disabled = false;
+        }
+      });
+      return;
+    }
+
+    ordersContainer.innerHTML = list.map(order => {
+      const date = new Date(order.createdAt).toLocaleDateString('ru-RU');
+      const itemsCount = order.items.length;
+      const itemsHtml = order.items.map(it => `
+        <tr data-testid="order-item-row">
+          <td data-testid="order-item-name">${it.name}</td>
+          <td><span class="test-tag">${it.category || '-'}</span></td>
+          <td data-testid="order-item-qty">${it.quantity}</td>
+          <td data-testid="order-item-price">${window.formatPrice(it.price)}</td>
+          <td data-testid="order-item-line">${window.formatPrice(it.price * it.quantity)}</td>
+        </tr>
+      `).join('');
+
+      return `
+        <div class="order-item" data-testid="order-item" data-order-number="${order.orderNumber}">
+          <div class="order-header">
+            <div>
+              <span class="test-tag" data-testid="order-number">${order.orderNumber}</span>
+              <span class="order-date">${date}</span>
+            </div>
+            <div class="order-summary">
+              <span class="order-total" data-testid="order-total">${window.formatPrice(order.total)}</span>
+              ${statusBadge(order.status)}
+            </div>
+          </div>
+          <div class="order-meta">${itemsCount} товар(ов)</div>
+
+          <button class="btn btn-ghost btn-sm order-toggle" data-testid="order-toggle-details" style="margin-top:8px">Показать товары</button>
+
+          <div class="order-details" style="display:none; margin-top:12px;">
+            <table class="table" data-testid="order-details-table">
+              <thead>
+                <tr>
+                  <th>Товар</th>
+                  <th>Категория</th>
+                  <th>Кол-во</th>
+                  <th>Цена</th>
+                  <th>Сумма</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Toggle details
+    ordersContainer.querySelectorAll('.order-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const details = btn.parentElement.querySelector('.order-details');
+        if (!details) return;
+        const isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        btn.textContent = isHidden ? 'Скрыть товары' : 'Показать товары';
+      });
+    });
+  }
+
+  renderOrders(orders);
 
   // Add new API item (adds to api_items list + creates product in catalog)
   const addApiBtn = document.querySelector('[data-testid="add-api-item-button"]');

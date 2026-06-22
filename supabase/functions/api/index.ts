@@ -305,7 +305,7 @@ serve(async (req: Request) => {
       const { data: orders, error: err } = await authedClient
         .from("orders")
         .select(`
-          id, order_number, total, created_at,
+          id, order_number, total, status, created_at,
           order_items (quantity, price, products (name))
         `)
         .eq("user_id", userData.user.id)
