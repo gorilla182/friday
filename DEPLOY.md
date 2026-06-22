@@ -146,6 +146,16 @@ Workflow находится в `.github/workflows/deploy-pages.yml` и такж�
 - Можно одновременно использовать Vercel и GitHub Pages.
 - Для продакшена подключите свой домен в любой из платформ.
 
+### Если сайт требует "Vercel Authentication" (401) или даёт 404 на проде
+
+Это происходит, если в настройках проекта включена защита деплоев:
+
+1. Откройте проект на Vercel → **Settings → Deployment Protection**
+2. Для **Production** поставьте **Disabled** (или "Only for Preview Deployments").
+3. Сохраните.
+
+После этого production-деплои (включая алиасы) будут публично доступны без логина в Vercel. Это важно для тестового стенда, где люди логинятся через Supabase (alice@example.com и т.д.).
+
 ## Сброс данных для тестов
 
 ```sql
