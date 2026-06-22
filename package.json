@@ -1,7 +1,7 @@
 {
   "name": "friday-teststand",
   "version": "1.0.0",
-  "description": "Test stand for Playwright and API testing practice",
+  "description": "QA test stand (Playwright + API testing) - static frontend + Supabase",
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "test": "vitest",

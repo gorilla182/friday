@@ -1,5 +1,5 @@
-// ===== STORE: minimal UI (cart state for badges only; real cart via Supabase)
-// Legacy mock kept ONLY for badge + some compat in renderers. Real data in supabase-data.
+// ===== STORE: client-side cart state (used only for UI badges and quick lookups)
+// Real cart data lives in Supabase. This is a lightweight in-memory mirror.
 const Store = {
   _cart: {},
   getCart() { return { ...this._cart }; },

@@ -1,4 +1,7 @@
-# Python
+# Dependencies
+node_modules/
+
+# Python / venv
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -19,23 +22,10 @@ data/*.db
 .env
 .env.local
 
-# Only ignore sourcemaps (the .js files in site/js/ are part of the static site
-# and must be committed; the TS build overwrites the generated ones in CI)
+# Build artifacts (keep .js for static site, ignore only maps)
 site/js/*.js.map
 
 # Misc
-*.log
-.vercel
-.env*
-
-# Node
-node_modules/
-
-# Additional ignores for cleanliness
-.DS_Store
-.idea/
-.vscode/
-*.swp
 *.log
 .vercel/
 .env*

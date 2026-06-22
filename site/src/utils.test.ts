@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { filterAndSortProducts, createProductCard, formatPrice, Product } from './utils';
 
 const mockProducts: Product[] = [
-  { id: 1, name: 'Python Handbook', price: 29.99, description: 'Python guide', category: 'programming' },
-  { id: 2, name: 'Playwright in Action', price: 39.99, description: 'E2E testing', category: 'testing' },
-  { id: 3, name: 'API Testing Cookbook', price: 24.99, category: 'testing' },
+  { id: 1, name: 'Apple iPhone 16', price: 999, description: 'Latest iPhone', category: 'phones' },
+  { id: 2, name: 'Samsung Galaxy S25 Ultra', price: 1199, description: 'Premium Android', category: 'phones' },
+  { id: 3, name: 'MacBook Air M3', price: 1099, description: 'Light laptop', category: 'laptops' },
 ];
 
 describe('filterAndSortProducts', () => {
@@ -14,26 +14,26 @@ describe('filterAndSortProducts', () => {
   });
 
   it('filters by search term', () => {
-    const result = filterAndSortProducts(mockProducts, 'python');
+    const result = filterAndSortProducts(mockProducts, 'iphone');
     expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('Python Handbook');
+    expect(result[0].name).toBe('Apple iPhone 16');
   });
 
   it('filters by category', () => {
-    const result = filterAndSortProducts(mockProducts, '', 'name-asc', 'programming');
+    const result = filterAndSortProducts(mockProducts, '', 'name-asc', 'phones');
     expect(result).toHaveLength(1);
-    expect(result[0].category).toBe('programming');
+    expect(result[0].category).toBe('phones');
   });
 
   it('sorts by price low to high', () => {
     const result = filterAndSortProducts(mockProducts, '', 'price-low');
-    expect(result[0].price).toBe(24.99);
-    expect(result[2].price).toBe(39.99);
+    expect(result[0].price).toBe(999);
+    expect(result[2].price).toBe(1099);
   });
 
   it('combines search and sort', () => {
-    const result = filterAndSortProducts(mockProducts, 'testing', 'price-high');
-    expect(result[0].name).toBe('Playwright in Action');
+    const result = filterAndSortProducts(mockProducts, 'laptop', 'price-high');
+    expect(result[0].name).toBe('MacBook Air M3');
   });
 
   it('returns empty array when no products match', () => {

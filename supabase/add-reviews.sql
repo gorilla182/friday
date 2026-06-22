@@ -25,6 +25,6 @@ CREATE POLICY "Users can update their own reviews" ON public.reviews
 CREATE POLICY "Users can delete their own reviews" ON public.reviews
   FOR DELETE USING (auth.uid() = user_id);
 
--- Optional seed (uncomment and adjust IDs after products and users exist)
+-- Optional seed (uncomment after products/users exist)
 -- INSERT INTO public.reviews (product_id, user_id, rating, comment) VALUES
--- (1, (SELECT id FROM auth.users WHERE email = 'alice@example.com' LIMIT 1), 5, 'Excellent Python guide!');
+-- (1, (SELECT id FROM auth.users WHERE email = 'alice@example.com' LIMIT 1), 5, 'Great phone!');

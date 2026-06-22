@@ -1,6 +1,6 @@
 -- ============================================
--- Teststand — Supabase Schema
--- Для миграции Flask teststand на Supabase + GitHub Pages
+-- Friday Teststand — Supabase Schema
+-- Electronics catalog test stand (phones, tablets, laptops)
 -- ============================================
 
 -- 1. PRODUCTS (публичный каталог, без владельца)
@@ -155,12 +155,9 @@ values
 on conflict do nothing;
 
 -- ============================================
--- Примечание:
--- api_items засеиваем позже (после создания пользователей alice/bob),
--- потому что нужен user_id (uuid из auth.users)
---
--- Добавление через UI "My API Items" теперь также создаёт запись в products (каталог).
--- Для этого нужна политика INSERT на products (добавлена выше).
+-- Примечания:
+-- - api_items seeded for specific test users (alice/bob) after they register
+-- - Adding via "My API Items" UI also inserts into public products catalog (via RLS policy)
 -- ============================================
 
 -- ============================================
