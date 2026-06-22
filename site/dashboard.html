@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/supabase-data.js"></script>
+<script src="js/bootstrap.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/store.js"></script>
 </head>
@@ -22,17 +23,7 @@
 <div id="app-root"></div>
 
 <script>
-(async () => {
-  try {
-  const client = window.createSupabaseClient();
-  if (!client) return;
-
-  const user = await window.requireAuth(client);
-  if (!user) return;
-
-  const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
-  window.CURRENT_USER = currentUser;
-
+window.initAuthenticatedPage('dashboard', 'Дашборд', async ({ client, user, currentUser }) => {
   const products = await window.loadProducts(client);
   window.PRODUCTS = products;
 
@@ -46,10 +37,8 @@
     if (p) cartTotal += p.price * qty;
   });
 
-  // populate Store + badge BEFORE mount (reuse loaded cartData, no extra fetch)
+  // populate Store + badge BEFORE mount
   window.populateStoreFromCart(cartData);
-
-  mountLayout({ active: 'dashboard', pageTitleMini: 'Дашборд' });
 
   const apiItemsCount = (await window.loadApiItems(client, user.id)).length;
 
@@ -130,11 +119,7 @@
   }
 
   window.attachProductGridHandlers(grid, client, user, products, updateCartStats);
-  } catch (e) {
-    console.error('Dashboard load error', e);
-    document.body.innerHTML = `<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading dashboard: ${e && e.message ? e.message : e}. <a href="index.html">Go to login</a></div>`;
-  }
-})();
+});
 </script>
 </body>
 </html>

@@ -13,6 +13,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/supabase-data.js"></script>
+<script src="js/bootstrap.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/store.js"></script>
 </head>
@@ -21,19 +22,10 @@
 <div id="app-root"></div>
 
 <script>
-(async () => {
-  try {
-    const client = window.createSupabaseClient();
-    const user = await window.requireAuth(client);
-    if (!user) return;
+window.initAuthenticatedPage('item', 'Товар', async ({ client, user, currentUser }) => {
+  await window.syncStoreFromDB(client, user.id);
 
-    const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
-    window.CURRENT_USER = currentUser;
-
-    await window.syncStoreFromDB(client, user.id);
-    mountLayout({ active: 'catalog', pageTitleMini: 'Товар' });
-
-    const main = document.getElementById('main-content');
+  const main = document.getElementById('main-content');
 
     const params = new URLSearchParams(location.search);
     const id = parseInt(params.get('id'));
@@ -117,7 +109,7 @@
     console.error('Item detail error', e);
     document.body.innerHTML = `<div data-testid="error-state">Error loading item: ${e && e.message ? e.message : e}. <a href="dashboard.html">Back</a></div>`;
   }
-})();
+});
 </script>
 </body>
 </html>

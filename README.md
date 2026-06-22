@@ -170,15 +170,16 @@ Authorization: Bearer <token>
   ```
 - `POST /admin/reset` — полный сброс данных (для изоляции тестов)
 
-## GitHub Actions (отдельные джобы)
+## GitHub Actions (деплой на Vercel)
 
-- **deploy-pages.yml** — `test` → `build` → `deploy`
 - **deploy-vercel.yml** — `test` → `deploy-preview` (PR) / `deploy-production` (main)
 
 Секреты для Vercel:
 - VERCEL_TOKEN
 - VERCEL_ORG_ID
 - VERCEL_PROJECT_ID
+
+**GitHub Pages больше не поддерживается.** Основной способ деплоя — Vercel + Supabase.
 
 ## Как писать тесты
 

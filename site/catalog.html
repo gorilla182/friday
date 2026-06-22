@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/supabase-data.js"></script>
+<script src="js/bootstrap.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/store.js"></script>
 </head>
@@ -23,24 +24,9 @@
 <div id="app-root"></div>
 
 <script>
-(async () => {
-  try {
-  const client = window.createSupabaseClient();
-  if (!client) return;
-
-  const user = await window.requireAuth(client);
-  if (!user) return;
-
+window.initAuthenticatedPage('catalog', 'Каталог', async ({ client, user }) => {
   const products = await window.loadProducts(client);
   window.PRODUCTS = products;
-
-  const currentUser = await window.loadCurrentUser(client) || { name: 'User', initials: 'U', email: '' };
-  window.CURRENT_USER = currentUser;
-
-  // sync cart to Store BEFORE mount so badge correct on initial layout render
-  await window.syncStoreFromDB(client, user.id);
-
-  mountLayout({ active: 'catalog', pageTitleMini: 'Каталог' });
 
   const main = document.getElementById('main-content');
 
@@ -209,11 +195,7 @@
 
   // initial render (Store already synced pre-mount)
   render();
-  } catch (e) {
-    console.error('Catalog load error', e);
-    document.body.innerHTML = `<div data-testid="error-state" style="padding:2rem;text-align:center;">Error loading catalog: ${e && e.message ? e.message : e}. <a href="index.html">Go to login</a></div>`;
-  }
-})();
+});
 </script>
 </body>
 </html>

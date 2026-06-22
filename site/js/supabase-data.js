@@ -1,6 +1,16 @@
 // ===== Supabase Data Layer for QA Store (real DB instead of mocks)
 // Maps real tables to the UI shapes expected by design
+//
+// Sections:
+// - Products & Catalog
+// - User & Auth helpers
+// - Cart operations
+// - Orders
+// - Reviews
+// - API Items (for test API practice)
+// - Shared UI helpers (render, format, etc)
 
+// --- Products & Catalog ---
 window.loadProducts = async (client) => {
   const { data, error } = await client
     .from('products')
@@ -23,6 +33,7 @@ window.loadProducts = async (client) => {
   }));
 };
 
+// --- User helpers ---
 window.loadCurrentUser = async (client) => {
   const { data: { user } } = await client.auth.getUser();
   if (!user) return null;
@@ -296,7 +307,7 @@ window.addProductDB = async (client, name, description = '', price = 19.99, cate
   return !error;
 };
 
-// ===== ORDERS HISTORY =====
+// --- Orders ---
 window.loadOrders = async (client, userId) => {
   const { data, error } = await client
     .from('orders')
