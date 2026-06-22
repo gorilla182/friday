@@ -27,3 +27,15 @@ site/js/*.js.map
 *.log
 .vercel
 .env*
+
+# Node
+node_modules/
+
+# Additional ignores for cleanliness
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.log
+.vercel/
+.env*
